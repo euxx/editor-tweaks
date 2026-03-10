@@ -1,0 +1,117 @@
+{
+  "name": "editor-tweaks",
+  "displayName": "Editor Tweaks",
+  "description": "Toggle quotes, highlight active line, and auto-remove tabs on save — three small utilities in one extension.",
+  "version": "0.1.0",
+  "author": "euxx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/euxx/editor-tweaks"
+  },
+  "icon": "images/icon.png",
+  "keywords": [
+    "toggle-quotes",
+    "highlight-line",
+    "remove-tabs",
+    "editor",
+    "utilities",
+    "vscode",
+    "vscode-extension"
+  ],
+  "publisher": "euxx",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "editorTweaks.toggleQuotes",
+        "title": "Editor Tweaks: Toggle Quotes"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "editorTweaks.toggleQuotes",
+        "key": "alt+'",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Editor Tweaks",
+      "properties": {
+        "editorTweaks.toggleQuotes.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Toggle Quotes feature."
+        },
+        "editorTweaks.toggleQuotes.chars": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["\"", "'", "`"],
+          "description": "Quote characters to cycle through."
+        },
+        "editorTweaks.highlightLine.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable active line highlight."
+        },
+        "editorTweaks.highlightLine.backgroundColor": {
+          "type": "string",
+          "default": "rgba(255,255,255,0.07)",
+          "description": "Background color of the active line highlight (CSS color value)."
+        },
+        "editorTweaks.highlightLine.borderColor": {
+          "type": "string",
+          "default": "",
+          "description": "Left border color of the active line highlight. Leave empty to disable."
+        },
+        "editorTweaks.removeTabsOnSave.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Convert tabs to spaces on file save."
+        },
+        "editorTweaks.removeTabsOnSave.languages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Language IDs to apply tab removal. Empty array means all languages."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'No build step required'",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\"",
+    "test": "vitest run",
+    "ci": "npm run test && npm run lint && npm run format:check",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "globals": "^15.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "prettier": "^3.0.0",
+    "vitest": "^3.2.4"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
