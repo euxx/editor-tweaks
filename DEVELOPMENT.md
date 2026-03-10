@@ -34,7 +34,7 @@ Open the project in VS Code and press **F5** to launch the Extension Development
 src/
 ├── extension.js          # Entry point: registers all features
 ├── toggleQuotes.js       # Toggle Quotes feature
-├── highlightLine.js      # Highlight Active Line feature
+├── highlightLine.js      # Highlight Current Line feature
 └── removeTabsOnSave.js   # Remove Tabs on Save feature
 tests/
 ├── toggleQuotes.test.js

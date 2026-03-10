@@ -36,19 +36,20 @@ Cycles the quote character surrounding the cursor: `"` → `'` → `` ` `` → `
 - `editorTweaks.toggleQuotes.enable` (boolean, default: `true`)
 - `editorTweaks.toggleQuotes.chars` (string[], default: `["\"", "'", "\`"]`)
 
-### 2. Highlight Active Line
+### 2. Highlight Current Line
 
-Applies a background color decoration to the line the cursor is on.
+Applies a bottom border decoration to the current line.
 
 **Behavior:**
-- Updates on cursor move and on active editor change
-- Clears decoration when editor loses focus
+- Updates on cursor move, only for the active editor
+- Clears decoration from other editors when switching tabs
 - Re-applies when configuration changes
 
 **Config:**
 - `editorTweaks.highlightLine.enable` (boolean, default: `true`)
-- `editorTweaks.highlightLine.backgroundColor` (string, default: `rgba(255,255,255,0.07)`)
-- `editorTweaks.highlightLine.borderColor` (string, default: `""` = disabled)
+- `editorTweaks.highlightLine.borderColor` (string, default: `"#65EAB9"`, empty = disabled)
+- `editorTweaks.highlightLine.borderStyle` (string enum: `"solid"` | `"dashed"` | `"dotted"`, default: `"solid"`)
+- `editorTweaks.highlightLine.borderWidth` (string CSS length, default: `"1px"`)
 
 ### 3. Remove Tabs on Save
 
