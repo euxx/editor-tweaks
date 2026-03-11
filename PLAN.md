@@ -41,9 +41,10 @@ Cycles the quote character surrounding the cursor: `"` → `'` → `` ` `` → `
 Applies a bottom border decoration to the current line.
 
 **Behavior:**
-- Updates on cursor move, only for the active editor
-- Clears decoration from other editors when switching tabs
-- Re-applies when configuration changes
+- Active editor: full-brightness bottom border following the cursor
+- Other visible editors: same border at 40% opacity, pinned to their last cursor position
+- Updates only when cursor moves to a different line (skip redraw on column-only changes)
+- Re-applies to all visible editors when configuration changes
 
 **Config:**
 - `editorTweaks.highlightLine.enable` (boolean, default: `true`)

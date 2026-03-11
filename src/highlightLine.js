@@ -1,10 +1,34 @@
 'use strict';
 
-// Highlights the active cursor line with a bottom border decoration.
-// Recreates the decoration type when configuration changes.
+// Highlights the current line with a bottom border decoration.
+// Non-active editors retain a dimmer highlight at their last cursor position.
+// Recreates decoration types when configuration changes.
 
 /** @type {import('vscode').TextEditorDecorationType | undefined} */
-let decorationType;
+let activeDecorationType;
+/** @type {import('vscode').TextEditorDecorationType | undefined} */
+let inactiveDecorationType;
+
+/** Tracks the last known cursor line for each document (by URI string). */
+const lastLineByDoc = new Map();
+
+/**
+ * Converts a CSS hex color (#RGB or #RRGGBB) to rgba() with the given alpha.
+ * Returns the original value unchanged for non-hex input (e.g. named colors, rgb()).
+ * @param {string} color
+ * @param {number} alpha — 0 to 1
+ * @returns {string}
+ */
+function withAlpha(color, alpha) {
+  if (!color.startsWith('#')) return color;
+  const hex = color.slice(1);
+  const expanded = hex.length === 3 ? hex.replace(/[0-9a-f]/gi, '$&$&') : hex;
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return color;
+  const r = parseInt(expanded.slice(0, 2), 16);
+  const g = parseInt(expanded.slice(2, 4), 16);
+  const b = parseInt(expanded.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 /**
  * Computes decoration options from a configuration object.
@@ -31,72 +55,107 @@ function getDecorationOptions(config) {
 }
 
 /**
- * Creates a new decoration type from the current configuration.
- * Returns undefined when decoration is disabled.
+ * Creates both active and inactive decoration types from the current configuration.
+ * Disposes any existing types first.
  * @param {typeof import('vscode')} vscode
- * @returns {import('vscode').TextEditorDecorationType | undefined}
  */
-function createDecorationType(vscode) {
+function createDecorationTypes(vscode) {
+  if (activeDecorationType) {
+    activeDecorationType.dispose();
+    activeDecorationType = undefined;
+  }
+  if (inactiveDecorationType) {
+    inactiveDecorationType.dispose();
+    inactiveDecorationType = undefined;
+  }
+
   const config = vscode.workspace.getConfiguration('editorTweaks.highlightLine');
   const options = getDecorationOptions(config);
-  return options ? vscode.window.createTextEditorDecorationType(options) : undefined;
+  if (options) {
+    activeDecorationType = vscode.window.createTextEditorDecorationType(options);
+    // Inactive editors show the same border with the color at reduced opacity
+    inactiveDecorationType = vscode.window.createTextEditorDecorationType({
+      ...options,
+      borderColor: withAlpha(options.borderColor, 0.7),
+    });
+  }
 }
 
 /**
- * Applies the current line decoration to the given editor.
- * @param {import('vscode').TextEditor | undefined} editor
+ * Applies active decoration to the active editor and inactive decoration to all other
+ * visible editors. Clears any stale decorations from editors that no longer qualify.
+ * @param {typeof import('vscode')} vscode
  */
-function applyDecoration(editor) {
-  if (!decorationType || !editor) return;
+function applyAllDecorations(vscode) {
+  const activeEditor = vscode.window.activeTextEditor;
 
-  const line = editor.selection.active.line;
-  const range = editor.document.lineAt(line).range;
-  editor.setDecorations(decorationType, [range]);
+  for (const editor of vscode.window.visibleTextEditors) {
+    if (editor === activeEditor) {
+      // Clear any leftover inactive decoration from this editor
+      if (inactiveDecorationType) editor.setDecorations(inactiveDecorationType, []);
+      if (!activeDecorationType) continue;
+      const line = editor.selection.active.line;
+      lastLineByDoc.set(editor.document.uri.toString(), line);
+      editor.setDecorations(activeDecorationType, [editor.document.lineAt(line).range]);
+    } else {
+      // Clear any leftover active decoration from this editor
+      if (activeDecorationType) editor.setDecorations(activeDecorationType, []);
+      if (!inactiveDecorationType) continue;
+      const savedLine = lastLineByDoc.get(editor.document.uri.toString());
+      if (savedLine !== undefined && savedLine < editor.document.lineCount) {
+        editor.setDecorations(inactiveDecorationType, [editor.document.lineAt(savedLine).range]);
+      } else {
+        editor.setDecorations(inactiveDecorationType, []);
+      }
+    }
+  }
 }
 
 /**
  * @param {import('vscode').ExtensionContext} context
  */
 function activate(context) {
+  // Lazy-load vscode so the pure getDecorationOptions function remains testable without the extension host
   const vscode = require('vscode');
 
-  decorationType = createDecorationType(vscode);
-  applyDecoration(vscode.window.activeTextEditor);
+  createDecorationTypes(vscode);
+  applyAllDecorations(vscode);
 
   context.subscriptions.push(
-    // Re-apply on cursor move — only for the active editor to avoid decorating background editors
+    // Update active editor decoration on cursor move; skip redraw when the line hasn't changed
     vscode.window.onDidChangeTextEditorSelection((e) => {
-      if (e.textEditor === vscode.window.activeTextEditor) {
-        applyDecoration(e.textEditor);
-      }
+      if (e.textEditor !== vscode.window.activeTextEditor) return;
+      if (!activeDecorationType) return;
+      const line = e.textEditor.selection.active.line;
+      if (line === lastLineByDoc.get(e.textEditor.document.uri.toString())) return;
+      lastLineByDoc.set(e.textEditor.document.uri.toString(), line);
+      e.textEditor.setDecorations(activeDecorationType, [e.textEditor.document.lineAt(line).range]);
     }),
 
-    // Re-apply when switching to a different editor tab — clear other visible editors first
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (decorationType) {
-        for (const e of vscode.window.visibleTextEditors) {
-          e.setDecorations(decorationType, []);
-        }
-      }
-      applyDecoration(editor);
+    // Re-apply all decorations when the active tab changes
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      applyAllDecorations(vscode);
     }),
 
-    // Recreate decoration when settings change (handles enable toggle and color/style changes)
+    // Recreate decoration types when settings change (handles enable toggle and color/style changes)
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('editorTweaks.highlightLine')) return;
-      // Disposing removes the decoration from all editors automatically
-      decorationType?.dispose();
-      decorationType = createDecorationType(vscode);
-      applyDecoration(vscode.window.activeTextEditor);
+      createDecorationTypes(vscode);
+      applyAllDecorations(vscode);
     }),
   );
 }
 
 function deactivate() {
-  if (decorationType) {
-    decorationType.dispose();
-    decorationType = undefined;
+  if (activeDecorationType) {
+    activeDecorationType.dispose();
+    activeDecorationType = undefined;
   }
+  if (inactiveDecorationType) {
+    inactiveDecorationType.dispose();
+    inactiveDecorationType = undefined;
+  }
+  lastLineByDoc.clear();
 }
 
-module.exports = { activate, deactivate, getDecorationOptions };
+module.exports = { activate, deactivate, getDecorationOptions, withAlpha };

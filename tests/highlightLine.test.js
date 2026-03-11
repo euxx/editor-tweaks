@@ -1,5 +1,5 @@
 // vitest globals (describe, it, expect) are injected via globals:true in vitest.config.mjs
-const { getDecorationOptions } = require('../src/highlightLine.js');
+const { getDecorationOptions, withAlpha } = require('../src/highlightLine.js');
 
 /** Helper to build a minimal config mock */
 function makeConfig(values) {
@@ -35,5 +35,20 @@ describe('getDecorationOptions', () => {
     const config = makeConfig({ enable: true, borderColor: '#fff', borderStyle: 'dashed', borderWidth: '2px' });
     const options = getDecorationOptions(config);
     expect(options.borderWidth).toBe('0 0 2px 0');
+  });
+});
+
+describe('withAlpha', () => {
+  it('converts #RRGGBB hex to rgba with the given alpha', () => {
+    expect(withAlpha('#65EAB9', 0.4)).toBe('rgba(101, 234, 185, 0.4)');
+  });
+
+  it('converts #RGB shorthand by expanding it', () => {
+    expect(withAlpha('#fff', 0.5)).toBe('rgba(255, 255, 255, 0.5)');
+  });
+
+  it('passes through non-hex values unchanged', () => {
+    expect(withAlpha('red', 0.4)).toBe('red');
+    expect(withAlpha('rgba(0,0,0,1)', 0.4)).toBe('rgba(0,0,0,1)');
   });
 });
