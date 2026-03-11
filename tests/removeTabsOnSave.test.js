@@ -1,5 +1,73 @@
 // vitest globals (describe, it, expect) are injected via globals:true in vitest.config.mjs
-const { convertTabs } = require('../src/removeTabsOnSave.js');
+const { convertTabs, isExcluded } = require('../src/removeTabsOnSave.js');
+
+describe('isExcluded', () => {
+  it('matches a language ID pattern', () => {
+    expect(isExcluded('makefile', '/path/to/Makefile', ['makefile'])).toBe(true);
+    expect(isExcluded('go', '/path/to/main.go', ['go'])).toBe(true);
+  });
+
+  it('matches an exact basename (no language ID needed)', () => {
+    // "Makefile" has languageId "makefile"; exact basename match covers any capitalisation
+    expect(isExcluded('makefile', '/path/to/Makefile', ['Makefile'])).toBe(true);
+    expect(isExcluded('plaintext', '/path/to/config.txt', ['config.txt'])).toBe(true);
+  });
+
+  it('matches a *.ext glob pattern', () => {
+    expect(isExcluded('go', '/path/to/main.go', ['*.go'])).toBe(true);
+    expect(isExcluded('css', '/path/Styles/style.css', ['*.css'])).toBe(true);
+  });
+
+  it('matches a mid-string glob pattern (e.g. prefix_*.txt)', () => {
+    expect(isExcluded('plaintext', '/path/to/prefix_config.txt', ['prefix_*.txt'])).toBe(true);
+    expect(isExcluded('plaintext', '/path/to/other_config.txt', ['prefix_*.txt'])).toBe(false);
+  });
+
+  it('returns false when nothing matches', () => {
+    expect(isExcluded('javascript', '/path/to/app.js', ['makefile', '*.go'])).toBe(false);
+  });
+
+  it('returns false for an empty pattern list', () => {
+    expect(isExcluded('makefile', '/path/to/Makefile', [])).toBe(false);
+  });
+
+  it('ignores non-string entries in the patterns array', () => {
+    expect(isExcluded('go', '/path/to/main.go', [null, 42, '*.go'])).toBe(true);
+  });
+
+  it('does not confuse a language ID with a similar extension glob', () => {
+    expect(isExcluded('typescript', '/path/to/app.ts', ['go'])).toBe(false);
+  });
+
+  it('matches case-insensitively for exact basename', () => {
+    // Pattern "makefile" should match file named "Makefile"
+    expect(isExcluded('makefile', '/path/to/Makefile', ['Makefile'])).toBe(true);
+    expect(isExcluded('makefile', '/path/to/makefile', ['Makefile'])).toBe(true);
+    expect(isExcluded('makefile', '/path/to/MAKEFILE', ['makefile'])).toBe(true);
+  });
+
+  it('matches case-insensitively for glob patterns', () => {
+    expect(isExcluded('go', '/path/to/main.GO', ['*.go'])).toBe(true);
+    expect(isExcluded('go', '/path/to/main.go', ['*.GO'])).toBe(true);
+  });
+
+  it('treats ? as a literal character in glob patterns, not a regex metachar', () => {
+    // Without escaping, *.go? would compile to /^[^\\/]*\.go?$/ making the 'o' optional,
+    // wrongly matching "main.g" and "main.go". With escaping it must NOT match those.
+    expect(isExcluded('go', '/path/to/main.g', ['*.go?'])).toBe(false);
+    expect(isExcluded('go', '/path/to/main.go', ['*.go?'])).toBe(false);
+  });
+
+  it('ignores glob patterns with more than 3 wildcards (ReDoS guard)', () => {
+    // Pattern with 4 stars should be skipped entirely
+    expect(isExcluded('plaintext', '/path/to/a.txt', ['*a*a*a*a'])).toBe(false);
+  });
+
+  it('returns false when patterns is null or undefined', () => {
+    expect(isExcluded('go', '/path/to/main.go', null)).toBe(false);
+    expect(isExcluded('go', '/path/to/main.go', undefined)).toBe(false);
+  });
+});
 
 describe('convertTabs', () => {
   it('replaces a single tab with the correct number of spaces', () => {

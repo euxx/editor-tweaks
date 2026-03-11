@@ -59,11 +59,11 @@ Before writing a file to disk, replaces all `\t` characters with the appropriate
 **Behavior:**
 - Intercepts `onWillSaveTextDocument` and injects `TextEdit` replacements
 - Respects per-language `tabSize` configuration
-- Can be scoped to specific language IDs
+- Skips files matching any exclusion pattern
 
 **Config:**
 - `editorTweaks.removeTabsOnSave.enable` (boolean, default: `true`)
-- `editorTweaks.removeTabsOnSave.languages` (string[], default: `[]` = all languages)
+- `editorTweaks.removeTabsOnSave.excludePatterns` (string[], default: `["makefile", "*.go"]`) — patterns to skip; each entry is a language ID, exact filename, or `*`-glob matched against the basename
 
 ---
 

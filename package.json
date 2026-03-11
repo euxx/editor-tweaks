@@ -45,61 +45,77 @@
         "when": "editorTextFocus"
       }
     ],
-    "configuration": {
-      "title": "Editor Tweaks",
-      "properties": {
-        "editorTweaks.toggleQuotes.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Toggle Quotes feature."
-        },
-        "editorTweaks.toggleQuotes.chars": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": ["\"", "'", "`"],
-          "description": "Quote characters to cycle through."
-        },
-        "editorTweaks.highlightLine.enable": {
-          "type": "boolean",
-          "default": true,
-          "order": 0,
-          "description": "Enable current line highlight."
-        },
-        "editorTweaks.highlightLine.borderColor": {
-          "type": "string",
-          "default": "#65EAB9",
-          "order": 1,
-          "description": "Bottom border color of the current line highlight (CSS color value). Leave empty to disable."
-        },
-        "editorTweaks.highlightLine.borderStyle": {
-          "type": "string",
-          "default": "solid",
-          "order": 2,
-          "enum": ["solid", "dashed", "dotted"],
-          "enumDescriptions": ["─────", "─ ─ ─", "·····"],
-          "description": "Bottom border style of the current line highlight."
-        },
-        "editorTweaks.highlightLine.borderWidth": {
-          "type": "string",
-          "default": "1px",
-          "order": 3,
-          "pattern": "^[0-9]+(\\.[0-9]+)?(px|em|rem|pt|%)$",
-          "patternErrorMessage": "Must be a CSS length value (e.g. '1px', '0.5em').",
-          "description": "Bottom border width of the current line highlight (CSS length value)."
-        },
-        "editorTweaks.removeTabsOnSave.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Convert tabs to spaces on file save."
-        },
-        "editorTweaks.removeTabsOnSave.languages": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": [],
-          "description": "Language IDs to apply tab removal. Empty array means all languages."
+    "configuration": [
+      {
+        "title": "Highlight Line",
+        "properties": {
+          "editorTweaks.highlightLine.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Enable current line highlight."
+          },
+          "editorTweaks.highlightLine.borderColor": {
+            "type": "string",
+            "default": "#65EAB9",
+            "order": 1,
+            "description": "Bottom border color of the current line highlight (CSS color value). Leave empty to disable."
+          },
+          "editorTweaks.highlightLine.borderStyle": {
+            "type": "string",
+            "default": "solid",
+            "order": 2,
+            "enum": ["solid", "dashed", "dotted"],
+            "enumDescriptions": ["─────", "─ ─ ─", "·····"],
+            "description": "Bottom border style of the current line highlight."
+          },
+          "editorTweaks.highlightLine.borderWidth": {
+            "type": "string",
+            "default": "1px",
+            "order": 3,
+            "pattern": "^[0-9]+(\\.[0-9]+)?(px|em|rem|pt|%)$",
+            "patternErrorMessage": "Must be a CSS length value (e.g. '1px', '0.5em').",
+            "description": "Bottom border width of the current line highlight (CSS length value)."
+          }
+        }
+      },
+      {
+        "title": "Toggle Quotes",
+        "properties": {
+          "editorTweaks.toggleQuotes.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Enable Toggle Quotes feature."
+          },
+          "editorTweaks.toggleQuotes.chars": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 1 },
+            "default": ["\"", "'", "`"],
+            "order": 1,
+            "description": "Quote characters to cycle through. Each entry must be a single character."
+          }
+        }
+      },
+      {
+        "title": "Remove Tabs on Save",
+        "properties": {
+          "editorTweaks.removeTabsOnSave.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Convert tabs to spaces on file save."
+          },
+          "editorTweaks.removeTabsOnSave.excludePatterns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": ["makefile", "*.go"],
+            "order": 1,
+            "markdownDescription": "Patterns to skip tab removal for. Each entry can be:\n- A **language ID** (e.g. `makefile`) — matched against the document's language\n- An **exact filename** (e.g. `GNUmakefile`) — matched against the file's basename\n- A **glob** containing `*` (e.g. `*.go`, `prefix_*.txt`, `*_suffix.go`) — matched against the file's basename\n\nDefaults to `makefile` and `*.go` since those file types require tab characters."
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "echo 'No build step required'",
