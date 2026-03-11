@@ -53,8 +53,7 @@ Tests use [Vitest](https://vitest.dev/).
 ## Local Packaging
 
 ```bash
-npm install -g @vscode/vsce
-vsce package
+npx @vscode/vsce package --no-dependencies
 ```
 
 This produces a `.vsix` file that can be installed locally via **Extensions: Install from VSIX**.
