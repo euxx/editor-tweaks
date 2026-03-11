@@ -31,6 +31,7 @@ Cycles the quote character surrounding the cursor: `"` → `'` → `` ` `` → `
 - Replaces opening and closing quote delimiters
 - Handles escaped characters inside the string (e.g., `\"` → `'` unescapes)
 - Works with multiple selections
+- **Limitation:** template literal expressions (`${...}`) are not parsed; quotes inside `${...}` may be mis-escaped when toggling to/from backtick
 
 **Config:**
 - `editorTweaks.toggleQuotes.enable` (boolean, default: `true`)
