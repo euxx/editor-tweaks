@@ -1,7 +1,7 @@
 {
   "name": "editor-tweaks",
   "displayName": "Editor Tweaks",
-  "description": "Toggle quotes, highlight current line, and auto-remove tabs on save — three small utilities in one extension.",
+  "description": "Toggle quotes, highlight current line, remove tabs on save, and prune stale recently-opened entries — small utilities in one extension.",
   "version": "0.1.0",
   "author": "euxx",
   "license": "MIT",
@@ -36,6 +36,10 @@
       {
         "command": "editorTweaks.toggleQuotes",
         "title": "Editor Tweaks: Toggle Quotes"
+      },
+      {
+        "command": "editorTweaks.pruneRecentlyOpened",
+        "title": "Editor Tweaks: Prune Recently Opened"
       }
     ],
     "keybindings": [
@@ -112,6 +116,30 @@
             "default": ["makefile", "*.go"],
             "order": 1,
             "markdownDescription": "Patterns to skip tab removal for. Each entry can be:\n- A **language ID** (e.g. `makefile`) — matched against the document's language\n- An **exact filename** (e.g. `GNUmakefile`) — matched against the file's basename\n- A **glob** containing `*` (e.g. `*.go`, `prefix_*.txt`, `*_suffix.go`) — matched against the file's basename\n\nDefaults to `makefile` and `*.go` since those file types require tab characters."
+          }
+        }
+      },
+      {
+        "title": "Prune Recently Opened",
+        "properties": {
+          "editorTweaks.pruneRecentlyOpened.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Enable the Prune Recently Opened feature."
+          },
+          "editorTweaks.pruneRecentlyOpened.runAtStartup": {
+            "type": "boolean",
+            "default": true,
+            "order": 1,
+            "description": "Automatically prune the recently-opened list each time VS Code starts."
+          },
+          "editorTweaks.pruneRecentlyOpened.maxItems": {
+            "type": "integer",
+            "default": -1,
+            "minimum": -1,
+            "order": 2,
+            "markdownDescription": "Maximum number of local (`file://`) entries to keep per category (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit."
           }
         }
       }

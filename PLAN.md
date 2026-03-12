@@ -122,6 +122,42 @@ All three features are loaded once on startup. Each feature checks its `enable` 
 
 ---
 
+## Planned Features (v1.x)
+
+### 4. Prune Recently Opened
+
+Removes stale and excess entries from the VS Code recently-opened list.
+
+**Background:**
+Replaces [`crendking.recently-opened-sweeper`](https://marketplace.visualstudio.com/items?itemName=crendking.recently-opened-sweeper).
+
+**Behavior:**
+- Iterates all workspace/folder and file entries in the recently-opened list
+- Removes any `file://` entry whose path no longer exists on disk
+- Optionally trims entries beyond a configured count (workspaces and files counted separately)
+- Non-`file://` entries (SSH, virtual workspaces) are always kept untouched
+- Runs automatically on startup (configurable) and via a manual command
+
+**VS Code APIs:**
+- `_workbench.getRecentlyOpened` (private, undocumented) — only available way to read the list
+- `vscode.removeFromRecentlyOpened` (public) — removes a single entry by path
+
+**Improvements over original:**
+- Single `maxItems` setting applies uniformly to both workspaces and files (original has one `keepCount` applied to each category independently, which is less predictable)
+- Skips non-`file://` URIs for both workspaces and files (original may call `fsPath` on SSH/virtual file entries)
+- Consistent `editorTweaks.*` settings namespace
+
+**Config:**
+- `editorTweaks.pruneRecentlyOpened.enable` (boolean, default: `true`)
+- `editorTweaks.pruneRecentlyOpened.runAtStartup` (boolean, default: `true`)
+- `editorTweaks.pruneRecentlyOpened.maxItems` (number, default: `-1`) — max entries to keep for each category (workspaces and files counted separately); `-1` = no limit
+
+**Command:** `editorTweaks.pruneRecentlyOpened`
+
+**Risk:** `_workbench.getRecentlyOpened` is a private API. If VS Code removes or changes it, the feature will silently do nothing (the command will be registered but produce no effect).
+
+---
+
 ## Publishing
 
 - Publisher: `euxx`

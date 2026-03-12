@@ -84,6 +84,31 @@ Before writing a file to disk, replaces all tab characters with spaces using the
 | `editorTweaks.removeTabsOnSave.enable` | `true` | Enable the feature |
 | `editorTweaks.removeTabsOnSave.excludePatterns` | `["makefile", "*.go"]` | Patterns to skip — language ID, exact filename, or `*`-glob matched against basename |
 
+---
+
+### Prune Recently Opened
+
+> Original [Recently Opened Sweeper](https://marketplace.visualstudio.com/items?itemName=crendking.recently-opened-sweeper)
+>
+> Improve:
+> - Skips non-`file://` entries for both workspaces and files — SSH/remote/virtual entries are never touched (original may attempt `fsPath` on them)
+> - Single `maxItems` setting applied independently to each category: workspaces get `maxItems` slots and files get `maxItems` slots (original's `keepCount` is per-category but documented as a single shared limit)
+
+Removes stale entries from the VS Code "recently opened" list — paths that no longer exist on disk — and optionally trims entries beyond a configured count.
+
+- Runs automatically on startup (configurable)
+- Also available as a manual command: `Editor Tweaks: Prune Recently Opened`
+- Non-`file://` entries (SSH, remote, virtual workspaces) are always kept untouched
+- `maxItems` is applied independently to each category: workspaces and files each get `maxItems` slots
+
+**Settings:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `editorTweaks.pruneRecentlyOpened.enable` | `true` | Enable the feature |
+| `editorTweaks.pruneRecentlyOpened.runAtStartup` | `true` | Prune automatically on startup |
+| `editorTweaks.pruneRecentlyOpened.maxItems` | `-1` | Max local entries to keep per category; `-1` = no limit |
+
 ## License
 
 Under the [MIT](LICENSE) License.
