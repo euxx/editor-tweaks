@@ -143,6 +143,11 @@ function activate(context) {
       createDecorationTypes(vscode);
       applyAllDecorations(vscode);
     }),
+
+    // Clean up stale entries when a document is closed
+    vscode.workspace.onDidCloseTextDocument((doc) => {
+      lastLineByDoc.delete(doc.uri.toString());
+    }),
   );
 }
 
