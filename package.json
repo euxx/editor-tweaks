@@ -57,7 +57,7 @@
             "type": "boolean",
             "default": true,
             "order": 0,
-            "description": "Enable current line highlight."
+            "description": "Enable Highlight Line."
           },
           "editorTweaks.highlightLine.borderColor": {
             "type": "string",
@@ -90,7 +90,7 @@
             "type": "boolean",
             "default": true,
             "order": 0,
-            "description": "Enable Toggle Quotes feature."
+            "description": "Enable Toggle Quotes."
           },
           "editorTweaks.toggleQuotes.chars": {
             "type": "array",
@@ -108,7 +108,7 @@
             "type": "boolean",
             "default": true,
             "order": 0,
-            "description": "Convert tabs to spaces on file save."
+            "description": "Enable Remove Tabs on Save."
           },
           "editorTweaks.removeTabsOnSave.excludePatterns": {
             "type": "array",
@@ -126,7 +126,7 @@
             "type": "boolean",
             "default": true,
             "order": 0,
-            "description": "Enable the Prune Recently Opened feature."
+            "description": "Enable Prune Recently Opened."
           },
           "editorTweaks.pruneRecentlyOpened.runAtStartup": {
             "type": "boolean",
