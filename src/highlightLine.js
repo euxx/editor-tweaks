@@ -13,7 +13,9 @@ let inactiveDecorationType;
 const lastLineByDoc = new Map();
 
 /**
- * Converts a CSS hex color (#RGB or #RRGGBB) to rgba() with the given alpha.
+ * Converts a CSS hex color (#RGB, #RRGGBB, or #RRGGBBAA) to rgba() with the given alpha.
+ * For #RRGGBBAA the embedded alpha is multiplied with the supplied alpha so that a
+ * semi-transparent active color produces an even more transparent inactive color.
  * Returns the original value unchanged for non-hex input (e.g. named colors, rgb()).
  * @param {string} color
  * @param {number} alpha — 0 to 1
@@ -22,12 +24,23 @@ const lastLineByDoc = new Map();
 function withAlpha(color, alpha) {
   if (!color.startsWith('#')) return color;
   const hex = color.slice(1);
-  const expanded = hex.length === 3 ? hex.replace(/[0-9a-f]/gi, '$&$&') : hex;
-  if (!/^[0-9a-f]{6}$/i.test(expanded)) return color;
-  const r = parseInt(expanded.slice(0, 2), 16);
-  const g = parseInt(expanded.slice(2, 4), 16);
-  const b = parseInt(expanded.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  let rgb;
+  let a = alpha;
+  if (hex.length === 3) {
+    rgb = hex.replace(/[0-9a-f]/gi, '$&$&');
+  } else if (hex.length === 6) {
+    rgb = hex;
+  } else if (hex.length === 8) {
+    rgb = hex.slice(0, 6);
+    a = +((parseInt(hex.slice(6, 8), 16) / 255) * alpha).toFixed(3);
+  } else {
+    return color;
+  }
+  if (!/^[0-9a-f]{6}$/i.test(rgb)) return color;
+  const r = parseInt(rgb.slice(0, 2), 16);
+  const g = parseInt(rgb.slice(2, 4), 16);
+  const b = parseInt(rgb.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /**

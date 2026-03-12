@@ -47,8 +47,20 @@ describe('withAlpha', () => {
     expect(withAlpha('#fff', 0.5)).toBe('rgba(255, 255, 255, 0.5)');
   });
 
+  it('converts #RRGGBBAA by multiplying embedded alpha with the override', () => {
+    // #65EAB9FF: A = 0xFF = 1.0, so 1.0 * 0.7 = 0.7
+    expect(withAlpha('#65EAB9FF', 0.7)).toBe('rgba(101, 234, 185, 0.7)');
+    // #65EAB9B3: A = 0xB3 = 179/255 ≈ 0.702, so 0.702 * 0.7 ≈ 0.491
+    expect(withAlpha('#65EAB9B3', 0.7)).toBe('rgba(101, 234, 185, 0.491)');
+  });
+
   it('passes through non-hex values unchanged', () => {
     expect(withAlpha('red', 0.4)).toBe('red');
     expect(withAlpha('rgba(0,0,0,1)', 0.4)).toBe('rgba(0,0,0,1)');
+  });
+
+  it('passes through invalid hex lengths unchanged', () => {
+    expect(withAlpha('#ff', 0.4)).toBe('#ff');
+    expect(withAlpha('#fffff', 0.4)).toBe('#fffff');
   });
 });
