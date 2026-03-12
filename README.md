@@ -109,6 +109,7 @@ Removes stale entries from both:
 - Non-`file://` entries (SSH, remote, virtual workspaces) in the recently opened list are always kept untouched
 - `maxItems` is applied independently to each category of the recently opened list: workspaces and files each get `maxItems` slots
 - Pruning the Go-to-File history requires the system `sqlite3` CLI (available by default on macOS and most Linux distributions); if absent this part of the feature is silently skipped and only the recently-opened list is pruned
+- Go-to-File history pruning takes effect on the **next launch** (stale entries are written back to the workspace database on window close)
 
 **Settings:**
 

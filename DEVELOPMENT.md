@@ -32,13 +32,18 @@ Open the project in VS Code and press **F5** to launch the Extension Development
 
 ```
 src/
-├── extension.js          # Entry point: registers all features
-├── toggleQuotes.js       # Toggle Quotes feature
-├── highlightLine.js      # Highlight Current Line feature
-└── removeTabsOnSave.js   # Remove Tabs on Save feature
+├── extension.js               # Entry point: registers all features
+├── toggleQuotes.js            # Toggle Quotes feature
+├── highlightLine.js           # Highlight Current Line feature
+├── removeTabsOnSave.js        # Remove Tabs on Save feature
+├── pruneRecentlyOpened.js     # Prune Open History — recently opened list
+└── pruneGoToFileHistory.js    # Prune Open History — Go-to-File (Cmd+P) history
 tests/
 ├── toggleQuotes.test.js
-└── removeTabsOnSave.test.js
+├── highlightLine.test.js
+├── removeTabsOnSave.test.js
+├── pruneRecentlyOpened.test.js
+└── pruneGoToFileHistory.test.js
 ```
 
 ## Testing

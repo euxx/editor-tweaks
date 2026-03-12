@@ -102,13 +102,13 @@ Replaces [`crendking.recently-opened-sweeper`](https://marketplace.visualstudio.
 
 **Config:**
 
-- `editorTweaks.pruneRecentlyOpened.enable` (boolean, default: `true`)
-- `editorTweaks.pruneRecentlyOpened.runAtStartup` (boolean, default: `true`)
-- `editorTweaks.pruneRecentlyOpened.maxItems` (number, default: `-1`) — max entries to keep for each category (workspaces and files counted separately); `-1` = no limit
+- `editorTweaks.pruneOpenHistory.enable` (boolean, default: `true`)
+- `editorTweaks.pruneOpenHistory.runAtStartup` (boolean, default: `true`)
+- `editorTweaks.pruneOpenHistory.maxItems` (number, default: `-1`) — max entries to keep for each category (workspaces and files counted separately); `-1` = no limit
 
-**Command:** `editorTweaks.pruneRecentlyOpened`
+**Command:** `editorTweaks.pruneOpenHistory`
 
-**Risk:** `_workbench.getRecentlyOpened` is a private API. If VS Code removes or changes it, the feature will silently do nothing (the command will be registered but produce no effect).
+**Note:** Also prunes the Go-to-File (Cmd+P) editor history. Stale paths are detected via the workspace state database (`state.vscdb`) and removed on window close; pruned entries are gone on the next launch. Requires the system `sqlite3` CLI.
 
 ---
 
@@ -123,12 +123,14 @@ editor-tweaks/
 │   ├── toggleQuotes.js            # Toggle Quotes implementation
 │   ├── highlightLine.js           # Highlight Line implementation
 │   ├── removeTabsOnSave.js        # Remove Tabs on Save implementation
-│   └── pruneRecentlyOpened.js     # Prune Recently Opened implementation
+│   ├── pruneRecentlyOpened.js     # Prune Open History — recently opened list
+│   └── pruneGoToFileHistory.js    # Prune Open History — Go-to-File (Cmd+P) history
 ├── tests/
 │   ├── toggleQuotes.test.js
 │   ├── highlightLine.test.js
 │   ├── removeTabsOnSave.test.js
-│   └── pruneRecentlyOpened.test.js
+│   ├── pruneRecentlyOpened.test.js
+│   └── pruneGoToFileHistory.test.js
 ├── images/
 │   └── icon.png
 ├── package.json
@@ -145,12 +147,13 @@ editor-tweaks/
 
 ### VS Code APIs Used
 
-| Feature               | APIs                                                                                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Toggle Quotes         | `registerCommand`, `TextEditor.edit`, `TextDocument.getText`, `Selection`, `Range`                                                                                                   |
-| Highlight Line        | `createTextEditorDecorationType`, `TextEditor.setDecorations`, `onDidChangeTextEditorSelection`, `onDidChangeActiveTextEditor`, `onDidChangeConfiguration`, `onDidCloseTextDocument` |
-| Remove Tabs on Save   | `onWillSaveTextDocument`, `TextEdit.replace`, `workspace.getConfiguration`                                                                                                           |
-| Prune Recently Opened | `registerCommand`, `_workbench.getRecentlyOpened` (private), `vscode.removeFromRecentlyOpened`                                                                                       |
+| Feature                              | APIs                                                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Toggle Quotes                        | `registerCommand`, `TextEditor.edit`, `TextDocument.getText`, `Selection`, `Range`                                                                                                   |
+| Highlight Line                       | `createTextEditorDecorationType`, `TextEditor.setDecorations`, `onDidChangeTextEditorSelection`, `onDidChangeActiveTextEditor`, `onDidChangeConfiguration`, `onDidCloseTextDocument` |
+| Remove Tabs on Save                  | `onWillSaveTextDocument`, `TextEdit.replace`, `workspace.getConfiguration`                                                                                                           |
+| Prune Open History (recently opened) | `registerCommand`, `_workbench.getRecentlyOpened` (private), `vscode.removeFromRecentlyOpened`                                                                                       |
+| Prune Open History (Go-to-File)      | `workspace.getConfiguration`, `spawnSync('sqlite3', ...)` (CLI, for `state.vscdb` read/write)                                                                                        |
 
 ### Activation
 
