@@ -38,8 +38,8 @@
         "title": "Editor Tweaks: Toggle Quotes"
       },
       {
-        "command": "editorTweaks.pruneRecentlyOpened",
-        "title": "Editor Tweaks: Prune Recently Opened"
+        "command": "editorTweaks.pruneOpenHistory",
+        "title": "Editor Tweaks: Prune Open History"
       }
     ],
     "keybindings": [
@@ -120,26 +120,26 @@
         }
       },
       {
-        "title": "Prune Recently Opened",
+        "title": "Prune Open History",
         "properties": {
-          "editorTweaks.pruneRecentlyOpened.enable": {
+          "editorTweaks.pruneOpenHistory.enable": {
             "type": "boolean",
             "default": true,
             "order": 0,
-            "description": "Enable Prune Recently Opened."
+            "description": "Enable Prune Open History."
           },
-          "editorTweaks.pruneRecentlyOpened.runAtStartup": {
+          "editorTweaks.pruneOpenHistory.runAtStartup": {
             "type": "boolean",
             "default": true,
             "order": 1,
-            "description": "Automatically prune the recently-opened list each time VS Code starts."
+            "description": "Automatically prune open history each time VS Code starts."
           },
-          "editorTweaks.pruneRecentlyOpened.maxItems": {
+          "editorTweaks.pruneOpenHistory.maxItems": {
             "type": "integer",
             "default": -1,
             "minimum": -1,
             "order": 2,
-            "markdownDescription": "Maximum number of local (`file://`) entries to keep per category (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit."
+            "markdownDescription": "Maximum number of local (`file://`) entries to keep per category in the recently-opened list (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit."
           }
         }
       }

@@ -113,12 +113,12 @@ function computeRemovals(workspaces, files, maxItems, existsFn) {
 /**
  * @param {import('vscode').ExtensionContext} context
  */
-function activate(context) {
+function activate(_context) {
   // Lazy-load vscode so the pure helper functions remain testable without the extension host
   const vscode = require('vscode');
 
   async function run() {
-    const config = vscode.workspace.getConfiguration('editorTweaks.pruneRecentlyOpened');
+    const config = vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory');
     if (!config.get('enable')) return;
 
     const maxItems = config.get('maxItems') ?? -1;
@@ -159,14 +159,12 @@ function activate(context) {
     }
   }
 
-  const command = vscode.commands.registerCommand('editorTweaks.pruneRecentlyOpened', run);
-  context.subscriptions.push(command);
-
   // Run automatically on startup if enabled
-  const startupConfig = vscode.workspace.getConfiguration('editorTweaks.pruneRecentlyOpened');
-  if (startupConfig.get('runAtStartup')) {
+  if (vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory').get('runAtStartup')) {
     run();
   }
+
+  return run;
 }
 
 function deactivate() {}

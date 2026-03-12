@@ -11,7 +11,7 @@ Built for personal use — one extension for the small editor utilities I use da
 - **Highlight Current Line** — bottom border decoration on the active cursor line
 - **Toggle Quotes** — cycle quote characters surrounding the cursor (`"` → `'` → `` ` `` → `"`)
 - **Remove Tabs on Save** — replace tab characters with spaces using the editor's `tabSize` on save
-- **Prune Recently Opened** — remove inaccessible paths from the recently opened list
+- **Prune Open History** — remove inaccessible paths from the recently opened list and the Go-to-File (Cmd+P) history
 
 ### Highlight Current Line
 
@@ -87,7 +87,7 @@ Before writing a file to disk, replaces all tab characters with spaces using the
 
 ---
 
-### Prune Recently Opened
+### Prune Open History
 
 > Original [Recently Opened Sweeper](https://marketplace.visualstudio.com/items?itemName=crendking.recently-opened-sweeper)
 >
@@ -95,21 +95,28 @@ Before writing a file to disk, replaces all tab characters with spaces using the
 >
 > - Skips non-`file://` entries for both workspaces and files — SSH/remote/virtual entries are never touched (original may attempt `fsPath` on them)
 > - Single `maxItems` setting applied independently to each category: workspaces get `maxItems` slots and files get `maxItems` slots (original's `keepCount` is per-category but documented as a single shared limit)
+> - Also prunes the Go-to-File (Cmd+P) editor history (not covered by the original)
 
-Removes stale entries from the VS Code "recently opened" list — paths that no longer exist on disk — and optionally trims entries beyond a configured count.
+Removes stale entries from both:
+
+- The VS Code **recently opened** list (File → Open Recent)
+- The **Go-to-File (Cmd+P)** editor history
+
+...where "stale" means the path no longer exists on disk.
 
 - Runs automatically on startup (configurable)
-- Also available as a manual command: `Editor Tweaks: Prune Recently Opened`
-- Non-`file://` entries (SSH, remote, virtual workspaces) are always kept untouched
-- `maxItems` is applied independently to each category: workspaces and files each get `maxItems` slots
+- Also available as a manual command: `Editor Tweaks: Prune Open History`
+- Non-`file://` entries (SSH, remote, virtual workspaces) in the recently opened list are always kept untouched
+- `maxItems` is applied independently to each category of the recently opened list: workspaces and files each get `maxItems` slots
+- Pruning the Go-to-File history requires the system `sqlite3` CLI (available by default on macOS and most Linux distributions); if absent this part of the feature is silently skipped and only the recently-opened list is pruned
 
 **Settings:**
 
-| Setting                                         | Default | Description                                             |
-| ----------------------------------------------- | ------- | ------------------------------------------------------- |
-| `editorTweaks.pruneRecentlyOpened.enable`       | `true`  | Enable the feature                                      |
-| `editorTweaks.pruneRecentlyOpened.runAtStartup` | `true`  | Prune automatically on startup                          |
-| `editorTweaks.pruneRecentlyOpened.maxItems`     | `-1`    | Max local entries to keep per category; `-1` = no limit |
+| Setting                                      | Default | Description                                                                                                                           |
+| -------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `editorTweaks.pruneOpenHistory.enable`       | `true`  | Enable the feature                                                                                                                    |
+| `editorTweaks.pruneOpenHistory.runAtStartup` | `true`  | Prune automatically on startup                                                                                                        |
+| `editorTweaks.pruneOpenHistory.maxItems`     | `-1`    | Max local entries to keep per category in the recently opened list (`maxItems` does not trim the Go-to-File history); `-1` = no limit |
 
 ## License
 
