@@ -42,6 +42,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { fileURLToPath } = require('url');
 
 // Pending DB cleanup for external stale paths — written in deactivate().
 let _pendingDbCleanup = null; // { stateDbPath: string, externalStalePaths: Set<string> }
@@ -64,23 +65,14 @@ function pathExists(p) {
 
 /**
  * Converts a file:// URI string to a filesystem path, or null for non-file URIs.
- * Handles percent-encoded characters (e.g. spaces, Unicode filenames).
+ * Handles percent-encoded characters, Windows drive-letter paths, and UNC paths
+ * (file://server/share/path) via Node's built-in fileURLToPath.
  * @param {string} uriString
  * @returns {string|null}
  */
 function fileUriToFsPath(uriString) {
   try {
-    const url = new URL(uriString);
-    if (url.protocol !== 'file:') return null;
-    // url.pathname preserves percent-encoding (%20, %E6%96%87, …); the explicit
-    // decodeURIComponent() below converts encoded sequences to filesystem chars.
-    // On Windows file URIs look like  file:///C:/path  → pathname = /C:/path;
-    // strip the leading slash on Windows drive-letter paths.
-    const p = url.pathname;
-    if (process.platform === 'win32' && /^\/[A-Za-z]:\//.test(p)) {
-      return decodeURIComponent(p.slice(1));
-    }
-    return decodeURIComponent(p);
+    return fileURLToPath(uriString);
   } catch {
     return null;
   }
