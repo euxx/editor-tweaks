@@ -112,8 +112,9 @@ function computeRemovals(workspaces, files, maxItems, existsFn) {
 
 /**
  * @param {import('vscode').ExtensionContext} context
+ * @param {import('vscode').OutputChannel} out  Shared output channel from extension.js
  */
-function activate(_context) {
+function activate(_context, out) {
   // Lazy-load vscode so the pure helper functions remain testable without the extension host
   const vscode = require('vscode');
 
@@ -161,7 +162,8 @@ function activate(_context) {
 
   // Run automatically on startup if enabled
   if (vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory').get('runAtStartup')) {
-    run();
+    // Log unexpected errors to aid debugging; expected failures are handled inside run().
+    run().catch((err) => out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`));
   }
 
   return run;

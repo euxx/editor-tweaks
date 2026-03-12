@@ -21,8 +21,10 @@ function activate(context) {
   activateToggleQuotes(context);
   activateHighlightLine(context);
   activateRemoveTabsOnSave(context);
-  const runPruneRecentlyOpened = activatePruneRecentlyOpened(context);
-  const runPruneGoToFileHistory = activatePruneGoToFileHistory(context);
+  const out = vscode.window.createOutputChannel('Editor Tweaks: Prune History');
+  context.subscriptions.push(out);
+  const runPruneRecentlyOpened = activatePruneRecentlyOpened(context, out);
+  const runPruneGoToFileHistory = activatePruneGoToFileHistory(context, out);
 
   const cmd = vscode.commands.registerCommand('editorTweaks.pruneOpenHistory', () =>
     Promise.all([runPruneRecentlyOpened(), runPruneGoToFileHistory()]),

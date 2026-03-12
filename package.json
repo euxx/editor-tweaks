@@ -139,7 +139,7 @@
             "default": -1,
             "minimum": -1,
             "order": 2,
-            "markdownDescription": "Maximum number of local (`file://`) entries to keep per category in the recently-opened list (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit."
+            "markdownDescription": "Maximum number of local (`file://`) entries to keep per category in the **recently-opened list** (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit. Does not apply to the Go-to-File history."
           }
         }
       }

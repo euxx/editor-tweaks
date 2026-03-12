@@ -198,17 +198,31 @@ async function applyFilesExcludePrune(patternsByFolder, vscode) {
     if (patterns.length === 0) continue;
 
     const config = vscode.workspace.getConfiguration('files', folder.uri);
-    const originalValue = config.inspect('exclude')?.workspaceFolderValue;
+    const originalValue = config.inspect('exclude')?.workspaceFolderValue ?? {};
 
-    const updated = Object.assign({}, originalValue ?? {});
+    // Track only patterns not already in the user's config so we don't delete
+    // pre-existing entries during the restore step. Also save the original value
+    // for any key that existed but was not already true (e.g. false) so the
+    // restore step can return it to its original value.
+    const newlyAdded = patterns.filter((p) => !(p in originalValue));
+    const overridden = {};
+    for (const p of patterns) {
+      if (p in originalValue && originalValue[p] !== true) overridden[p] = originalValue[p];
+    }
+
+    // Nothing to do — all patterns already present and true.
+    if (newlyAdded.length === 0 && Object.keys(overridden).length === 0) continue;
+
+    const updated = Object.assign({}, originalValue);
     for (const p of patterns) {
       updated[p] = true;
-      totalPatterns++;
     }
 
     try {
       await config.update('exclude', updated, vscode.ConfigurationTarget.WorkspaceFolder);
-      restoreOps.push({ config, originalValue });
+      // Count only patterns that actually changed the config (newly added or overriding a non-true value).
+      totalPatterns += newlyAdded.length + Object.keys(overridden).length;
+      restoreOps.push({ config, addedKeys: newlyAdded, overridden });
     } catch {
       // Read-only workspace or other config error — skip this folder
     }
@@ -220,11 +234,23 @@ async function applyFilesExcludePrune(patternsByFolder, vscode) {
       // and call removeExcludedFromHistory() on the in-memory history.
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } finally {
-      // Always restore original exclude settings, even if the delay is interrupted,
-      // to avoid leaving stale patterns in .vscode/settings.json.
-      for (const { config, originalValue } of restoreOps) {
+      // Re-read the current value before restoring so we only remove the keys this
+      // function added — any concurrent changes made during the 1000ms delay are kept.
+      for (const { config, addedKeys, overridden } of restoreOps) {
         try {
-          const restore = originalValue != null && Object.keys(originalValue).length > 0 ? originalValue : undefined;
+          const current = config.inspect('exclude')?.workspaceFolderValue ?? {};
+          const cleaned = Object.assign({}, current);
+          // Only delete keys still set to true (our write). If the user concurrently
+          // changed a key to another value during the 1000ms delay, leave it as-is.
+          for (const key of addedKeys) {
+            if (cleaned[key] === true) delete cleaned[key];
+          }
+          // Restore keys that existed with a non-true value (e.g. false) back to their
+          // original value, but only if still set to true (same guard as addedKeys above).
+          for (const [key, value] of Object.entries(overridden)) {
+            if (cleaned[key] === true) cleaned[key] = value;
+          }
+          const restore = Object.keys(cleaned).length > 0 ? cleaned : undefined;
           await config.update('exclude', restore, vscode.ConfigurationTarget.WorkspaceFolder);
         } catch {
           // Ignore restore errors — worst case the user has extra exclude
@@ -259,14 +285,27 @@ async function applyGlobalExcludePrune(externalStalePaths, vscode) {
   if (externalStalePaths.length === 0) return 0;
 
   const config = vscode.workspace.getConfiguration('files');
-  const originalValue = config.inspect('exclude')?.globalValue;
+  const currentValue = config.inspect('exclude')?.globalValue ?? {};
 
-  const updated = Object.assign({}, originalValue ?? {});
-  for (const p of externalStalePaths) {
+  // Track only pattern keys not already in the user's global config. Also save
+  // the original value for any key that existed but was not already true (e.g.
+  // false) so the restore step can return it to its original value.
+  const allPatternKeys = externalStalePaths.map((p) => escapeGlob(vscode.Uri.file(p).path));
+  const newlyAdded = allPatternKeys.filter((key) => !(key in currentValue));
+  const overridden = {};
+  for (const key of allPatternKeys) {
+    if (key in currentValue && currentValue[key] !== true) overridden[key] = currentValue[key];
+  }
+
+  // Nothing to do — all patterns already present and true.
+  if (newlyAdded.length === 0 && Object.keys(overridden).length === 0) return 0;
+
+  const updated = Object.assign({}, currentValue);
+  for (const key of allPatternKeys) {
     // Use the escaped URI path as the pattern key: escapeGlob ensures any glob
     // special characters in directory names (e.g. [2024]-report/) are treated
     // as literals, matching the same way as patterns in computeExcludePatterns.
-    updated[escapeGlob(vscode.Uri.file(p).path)] = true;
+    updated[key] = true;
   }
 
   try {
@@ -278,12 +317,27 @@ async function applyGlobalExcludePrune(externalStalePaths, vscode) {
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } finally {
-    try {
-      const restore = originalValue != null && Object.keys(originalValue).length > 0 ? originalValue : undefined;
-      await config.update('exclude', restore, vscode.ConfigurationTarget.Global);
-    } catch {
-      // Ignore restore errors — worst case the user has extra exclude
-      // patterns that can be manually removed from VS Code user settings
+    if (newlyAdded.length > 0 || Object.keys(overridden).length > 0) {
+      // Re-read the current value before restoring so we only remove the keys this
+      // function added — preserves concurrent changes and pre-existing user entries.
+      // Restore overridden keys only if still set to true (same guard as newlyAdded).
+      try {
+        const current = config.inspect('exclude')?.globalValue ?? {};
+        const cleaned = Object.assign({}, current);
+        // Only delete keys still set to true (our write). If the user concurrently
+        // changed a key to another value during the 1000ms delay, leave it as-is.
+        for (const key of newlyAdded) {
+          if (cleaned[key] === true) delete cleaned[key];
+        }
+        for (const [key, value] of Object.entries(overridden)) {
+          if (cleaned[key] === true) cleaned[key] = value;
+        }
+        const restore = Object.keys(cleaned).length > 0 ? cleaned : undefined;
+        await config.update('exclude', restore, vscode.ConfigurationTarget.Global);
+      } catch {
+        // Ignore restore errors — worst case the user has extra exclude
+        // patterns that can be manually removed from VS Code user settings
+      }
     }
   }
 
@@ -336,11 +390,10 @@ function cleanExternalPathsFromDb(stateDbPath, staleExternalPaths) {
 
 /**
  * @param {import('vscode').ExtensionContext} context
+ * @param {import('vscode').OutputChannel} out  Shared output channel from extension.js
  */
-function activate(context) {
+function activate(context, out) {
   const vscode = require('vscode');
-  const out = vscode.window.createOutputChannel('Editor Tweaks: Prune History');
-  context.subscriptions.push(out);
   const log = (...args) => out.appendLine(args.join(' '));
 
   async function run() {
@@ -405,20 +458,24 @@ function activate(context) {
     );
     log('  externalStalePaths:', externalStale.length > 0 ? externalStale.join(', ') : '(none)');
 
+    // Run both in parallel — they target different config scopes (WorkspaceFolder
+    // vs Global), so there is no conflict and the combined delay is 1000ms instead of 2000ms.
+    const [internalN, externalN] = await Promise.all([
+      patternsByFolder.size > 0 ? applyFilesExcludePrune(patternsByFolder, vscode) : Promise.resolve(0),
+      externalStale.length > 0 ? applyGlobalExcludePrune(externalStale, vscode) : Promise.resolve(0),
+    ]);
+
     if (patternsByFolder.size > 0) {
-      const n = await applyFilesExcludePrune(patternsByFolder, vscode);
-      log('  files.exclude trick — applied', n, 'pattern(s)');
+      log('  files.exclude trick — applied', internalN, 'pattern(s)');
     } else {
       log('  no internal patterns to apply');
     }
 
-    // External stale paths: first try the experimental global files.exclude
-    // approach (immediate, no restart required). Also schedule the SQLite
-    // cleanup for deactivation as a fallback — if the global approach happened
-    // to have no effect, the SQLite write ensures cleanup on the next launch.
+    // External stale paths: also schedule the SQLite cleanup for deactivation as a
+    // fallback — if the global files.exclude approach had no effect, the SQLite write
+    // ensures cleanup on the next launch.
     if (externalStale.length > 0) {
-      const n = await applyGlobalExcludePrune(externalStale, vscode);
-      log('  global files.exclude trick (experimental) — applied', n, 'external pattern(s)');
+      log('  global files.exclude trick (experimental) — applied', externalN, 'external pattern(s)');
 
       // Merge with any existing pending set so that multiple run() calls in the
       // same session don't silently discard paths from earlier invocations.
@@ -432,7 +489,9 @@ function activate(context) {
   }
 
   if (vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory').get('runAtStartup')) {
-    run();
+    // Log unexpected errors to the output channel to aid debugging;
+    // expected failures (no sqlite3, no workspace, etc.) are handled inside run().
+    run().catch((err) => log('[unexpected]', err?.stack ?? err?.message ?? err));
   }
 
   return run;
@@ -455,8 +514,6 @@ module.exports = {
   fileUriToFsPath,
   escapeGlob,
   computeExcludePatterns,
-  // exported for testing only:
-  readWorkspaceHistoryPaths,
   applyFilesExcludePrune,
   applyGlobalExcludePrune,
 };
