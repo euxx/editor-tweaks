@@ -20,7 +20,7 @@ function convertTabs(text, tabSize) {
       column += spacesToTab;
     } else {
       result += char;
-      column += 1;
+      column += char.length; // char.length is 2 for surrogate-pair code points (emoji)
     }
   }
   return result;
