@@ -1,5 +1,7 @@
 // vitest globals (describe, it, expect, vi) are injected via globals:true in vitest.config.mjs
-const { fileUriToFsPath } = require('../src/pruneGoToFileHistory.js');
+
+const { fileUriToFsPath, readWorkspaceHistoryPaths, cleanStalePathsFromDb } = require('../src/pruneGoToFileHistory.js');
+const childProcess = require('child_process');
 
 // ---------------------------------------------------------------------------
 // fileUriToFsPath
@@ -27,5 +29,148 @@ describe('fileUriToFsPath', () => {
   it('returns null for invalid URI strings', () => {
     expect(fileUriToFsPath('not a uri')).toBeNull();
     expect(fileUriToFsPath('')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// readWorkspaceHistoryPaths
+// ---------------------------------------------------------------------------
+
+describe('readWorkspaceHistoryPaths', () => {
+  let spawnSyncSpy;
+
+  beforeEach(() => {
+    spawnSyncSpy = vi.spyOn(childProcess, 'spawnSync');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns null when sqlite3 exits with non-zero status', () => {
+    spawnSyncSpy.mockReturnValue({ status: 1, error: null, stdout: '' });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toBeNull();
+  });
+
+  it('returns null when spawnSync returns an error (e.g. sqlite3 not found)', () => {
+    spawnSyncSpy.mockReturnValue({ status: 0, error: new Error('ENOENT'), stdout: '' });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toBeNull();
+  });
+
+  it('returns an empty array when the DB has no history.entries row', () => {
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: '' });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual([]);
+  });
+
+  it('returns filesystem paths from valid history entries', () => {
+    const entries = [
+      { editor: { resource: 'file:///Users/e/project/src/main.js' } },
+      { editor: { resource: 'file:///Users/e/project/src/utils.js' } },
+    ];
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: JSON.stringify(entries) });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual([
+      '/Users/e/project/src/main.js',
+      '/Users/e/project/src/utils.js',
+    ]);
+  });
+
+  it('skips entries without editor.resource', () => {
+    const entries = [
+      { editor: {} },
+      { someOtherEntry: true },
+      { editor: { resource: 'file:///Users/e/project/index.js' } },
+    ];
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: JSON.stringify(entries) });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual(['/Users/e/project/index.js']);
+  });
+
+  it('skips non-file:// URIs (remote, virtual)', () => {
+    const entries = [
+      { editor: { resource: 'vscode-remote://host/path/file.js' } },
+      { editor: { resource: 'file:///Users/e/local.js' } },
+    ];
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: JSON.stringify(entries) });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual(['/Users/e/local.js']);
+  });
+
+  it('returns null for malformed JSON', () => {
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: 'not valid json {' });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toBeNull();
+  });
+
+  it('returns null when the JSON value is not an array', () => {
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: '{"key":"value"}' });
+    expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cleanStalePathsFromDb
+// ---------------------------------------------------------------------------
+
+describe('cleanStalePathsFromDb', () => {
+  let spawnSyncSpy;
+
+  beforeEach(() => {
+    spawnSyncSpy = vi.spyOn(childProcess, 'spawnSync');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns false when the read query fails', () => {
+    spawnSyncSpy.mockReturnValue({ status: 1, error: null, stdout: '' });
+    expect(cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/missing.js']))).toBe(false);
+  });
+
+  it('returns true when the DB has no history.entries row (empty result is no-op, not an error)', () => {
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: '' });
+    expect(cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/missing.js']))).toBe(true);
+    expect(spawnSyncSpy).toHaveBeenCalledTimes(1); // no write call needed
+  });
+
+  it('returns true and skips the write when no stale paths appear in the current entries', () => {
+    const entries = [{ editor: { resource: 'file:///Users/e/existing.js' } }];
+    spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: JSON.stringify(entries) });
+    const result = cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/other-missing.js']));
+    expect(result).toBe(true);
+    expect(spawnSyncSpy).toHaveBeenCalledTimes(1); // read only, no write since entries unchanged
+  });
+
+  it('removes only stale paths and returns true when the write succeeds', () => {
+    const stale = { editor: { resource: 'file:///Users/e/stale.js' } };
+    const keep = { editor: { resource: 'file:///Users/e/keep.js' } };
+    spawnSyncSpy
+      .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([stale, keep]) })
+      .mockReturnValueOnce({ status: 0, error: null, stdout: '' });
+
+    const result = cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/stale.js']));
+    expect(result).toBe(true);
+
+    // The write SQL should retain only the kept entry
+    const writeInput = spawnSyncSpy.mock.calls[1][2].input;
+    expect(writeInput).toContain('keep.js');
+    expect(writeInput).not.toContain('stale.js');
+  });
+
+  it('returns false when the write query fails', () => {
+    const stale = { editor: { resource: 'file:///Users/e/stale.js' } };
+    spawnSyncSpy
+      .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([stale]) })
+      .mockReturnValueOnce({ status: 1, error: null, stdout: '' });
+    expect(cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/stale.js']))).toBe(false);
+  });
+
+  it('issues a correctly formatted UPDATE statement', () => {
+    const entry = { editor: { resource: 'file:///Users/e/stale.js' } };
+    spawnSyncSpy
+      .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([entry]) })
+      .mockReturnValueOnce({ status: 0, error: null, stdout: '' });
+
+    cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/stale.js']));
+
+    const writeInput = spawnSyncSpy.mock.calls[1][2].input;
+    expect(writeInput).toMatch(/^UPDATE ItemTable SET value = '.*' WHERE key = 'history\.entries';\n$/s);
   });
 });

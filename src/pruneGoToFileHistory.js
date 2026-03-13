@@ -19,7 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const childProcess = require('child_process');
 const { fileURLToPath } = require('url');
 
 // Stale paths accumulated across run() calls; written to state.vscdb in deactivate().
@@ -63,10 +63,14 @@ function fileUriToFsPath(uriString) {
  * @returns {string[]|null}
  */
 function readWorkspaceHistoryPaths(stateDbPath) {
-  const result = spawnSync('sqlite3', [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"], {
-    timeout: 5000,
-    encoding: 'utf8',
-  });
+  const result = childProcess.spawnSync(
+    'sqlite3',
+    [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
+    {
+      timeout: 5000,
+      encoding: 'utf8',
+    },
+  );
 
   if (result.status !== 0 || result.error) return null;
 
@@ -101,14 +105,18 @@ function readWorkspaceHistoryPaths(stateDbPath) {
  */
 function cleanStalePathsFromDb(stateDbPath, stalePaths) {
   // Re-read current DB entries so we clean the final persisted state.
-  const readResult = spawnSync('sqlite3', [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"], {
-    timeout: 2000,
-    encoding: 'utf8',
-  });
+  const readResult = childProcess.spawnSync(
+    'sqlite3',
+    [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
+    {
+      timeout: 2000,
+      encoding: 'utf8',
+    },
+  );
   if (readResult.status !== 0 || readResult.error) return false;
 
   const json = (readResult.stdout ?? '').trim();
-  if (!json) return false;
+  if (!json) return true; // no entries in db — nothing to remove
 
   let entries;
   try {
@@ -127,7 +135,7 @@ function cleanStalePathsFromDb(stateDbPath, stalePaths) {
   const cleanedJson = JSON.stringify(cleaned);
   // Escape single-quote characters for the SQLite literal.
   const escaped = cleanedJson.replace(/'/g, "''");
-  const writeResult = spawnSync('sqlite3', [stateDbPath], {
+  const writeResult = childProcess.spawnSync('sqlite3', [stateDbPath], {
     input: `UPDATE ItemTable SET value = '${escaped}' WHERE key = 'history.entries';\n`,
     timeout: 2000,
     encoding: 'utf8',
@@ -228,4 +236,6 @@ module.exports = {
   activate,
   deactivate,
   fileUriToFsPath,
+  readWorkspaceHistoryPaths,
+  cleanStalePathsFromDb,
 };
