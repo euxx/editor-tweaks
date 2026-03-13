@@ -57,34 +57,40 @@ function fileUriToFsPath(uriString) {
 }
 
 /**
+ * Reads and parses history.entries from the VS Code workspace storage SQLite
+ * database via the sqlite3 CLI. Returns the raw entries array, an empty array
+ * if the DB has no entries, or null on failure (sqlite3 error, parse failure,
+ * or unexpected value type).
+ * @param {string} stateDbPath
+ * @param {number} [timeout]
+ * @returns {object[]|null}
+ */
+function readHistoryEntriesFromDb(stateDbPath, timeout = 5000) {
+  const result = childProcess.spawnSync(
+    'sqlite3',
+    [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
+    { timeout, encoding: 'utf8' },
+  );
+  if (result.status !== 0 || result.error) return null;
+  const json = (result.stdout ?? '').trim();
+  if (!json) return [];
+  try {
+    const entries = JSON.parse(json);
+    return Array.isArray(entries) ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reads history.entries from the VS Code workspace storage SQLite database via
  * the sqlite3 CLI. Returns an array of filesystem paths, or null on failure.
  * @param {string} stateDbPath  Absolute path to the workspace state.vscdb file
  * @returns {string[]|null}
  */
 function readWorkspaceHistoryPaths(stateDbPath) {
-  const result = childProcess.spawnSync(
-    'sqlite3',
-    [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
-    {
-      timeout: 5000,
-      encoding: 'utf8',
-    },
-  );
-
-  if (result.status !== 0 || result.error) return null;
-
-  const json = (result.stdout ?? '').trim();
-  if (!json) return [];
-
-  let entries;
-  try {
-    entries = JSON.parse(json);
-  } catch {
-    return null;
-  }
-
-  if (!Array.isArray(entries)) return null;
+  const entries = readHistoryEntriesFromDb(stateDbPath);
+  if (entries === null) return null;
 
   const paths = [];
   for (const entry of entries) {
@@ -105,26 +111,9 @@ function readWorkspaceHistoryPaths(stateDbPath) {
  */
 function cleanStalePathsFromDb(stateDbPath, stalePaths) {
   // Re-read current DB entries so we clean the final persisted state.
-  const readResult = childProcess.spawnSync(
-    'sqlite3',
-    [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
-    {
-      timeout: 2000,
-      encoding: 'utf8',
-    },
-  );
-  if (readResult.status !== 0 || readResult.error) return false;
-
-  const json = (readResult.stdout ?? '').trim();
-  if (!json) return true; // no entries in db — nothing to remove
-
-  let entries;
-  try {
-    entries = JSON.parse(json);
-  } catch {
-    return false;
-  }
-  if (!Array.isArray(entries)) return false;
+  const entries = readHistoryEntriesFromDb(stateDbPath, 2000);
+  if (entries === null) return false;
+  if (entries.length === 0) return true; // no entries in db — nothing to remove
 
   const cleaned = entries.filter((entry) => {
     const fsPath = entry?.editor?.resource ? fileUriToFsPath(entry.editor.resource) : null;

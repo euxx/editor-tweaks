@@ -12,15 +12,15 @@
  */
 function convertTabs(text, tabSize) {
   let result = '';
-  let col = 0;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === '\t') {
-      const spaces = tabSize - (col % tabSize);
-      result += ' '.repeat(spaces);
-      col += spaces;
+  let column = 0;
+  for (const char of text) {
+    if (char === '\t') {
+      const spacesToTab = tabSize - (column % tabSize);
+      result += ' '.repeat(spacesToTab);
+      column += spacesToTab;
     } else {
-      result += text[i];
-      col++;
+      result += char;
+      column += 1;
     }
   }
   return result;

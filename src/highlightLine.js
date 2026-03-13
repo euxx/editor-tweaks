@@ -73,14 +73,10 @@ function getDecorationOptions(config) {
  * @param {typeof import('vscode')} vscode
  */
 function createDecorationTypes(vscode) {
-  if (activeDecorationType) {
-    activeDecorationType.dispose();
-    activeDecorationType = undefined;
-  }
-  if (inactiveDecorationType) {
-    inactiveDecorationType.dispose();
-    inactiveDecorationType = undefined;
-  }
+  activeDecorationType?.dispose();
+  activeDecorationType = undefined;
+  inactiveDecorationType?.dispose();
+  inactiveDecorationType = undefined;
 
   const config = vscode.workspace.getConfiguration('editorTweaks.highlightLine');
   const options = getDecorationOptions(config);
@@ -165,14 +161,10 @@ function activate(context) {
 }
 
 function deactivate() {
-  if (activeDecorationType) {
-    activeDecorationType.dispose();
-    activeDecorationType = undefined;
-  }
-  if (inactiveDecorationType) {
-    inactiveDecorationType.dispose();
-    inactiveDecorationType = undefined;
-  }
+  activeDecorationType?.dispose();
+  activeDecorationType = undefined;
+  inactiveDecorationType?.dispose();
+  inactiveDecorationType = undefined;
   lastLineByDoc.clear();
 }
 

@@ -50,9 +50,7 @@ function findQuotedRange(lineText, cursorCol, chars) {
  * @returns {string}
  */
 function cycleQuote(currentQuote, chars) {
-  const idx = chars.indexOf(currentQuote);
-  if (idx === -1) return chars[0];
-  return chars[(idx + 1) % chars.length];
+  return chars[(chars.indexOf(currentQuote) + 1) % chars.length];
 }
 
 /**
