@@ -108,8 +108,9 @@ function activate(context) {
 
     return editor.edit((editBuilder) => {
       // Collect all replacements first, deduplicate by range identity (same quoted string
-      // can contain multiple cursors), then apply in reverse document order so an earlier
-      // replacement on the same line does not shift the character offsets of later ones.
+      // can contain multiple cursors), then sort for deterministic application order.
+      // (Within editor.edit() all ranges are in original-document coordinates and are
+      // applied atomically, so no offset shifting occurs regardless of order.)
       const seen = new Set();
       const replacements = [];
 
@@ -132,7 +133,7 @@ function activate(context) {
         });
       }
 
-      // Sort bottom-to-top, right-to-left so each edit uses original coordinates
+      // Sort bottom-to-top, right-to-left for deterministic application order
       replacements.sort((a, b) => {
         const ld = b.vscRange.start.line - a.vscRange.start.line;
         return ld !== 0 ? ld : b.vscRange.start.character - a.vscRange.start.character;

@@ -16,7 +16,8 @@ const lastLineByDoc = new Map();
  * Converts a CSS hex color (#RGB, #RRGGBB, or #RRGGBBAA) to rgba() with the given alpha.
  * For #RRGGBBAA the embedded alpha is multiplied with the supplied alpha so that a
  * semi-transparent active color produces an even more transparent inactive color.
- * Returns the original value unchanged for non-hex input (e.g. named colors, rgb()).
+ * Returns the original value unchanged for non-hex input (e.g. named colors, rgb())
+ * and also for malformed hex values (wrong digit count or non-hex characters like #xyz).
  * @param {string} color
  * @param {number} alpha — 0 to 1
  * @returns {string}

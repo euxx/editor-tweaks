@@ -79,6 +79,7 @@ function activate(context) {
 
     // Prefer the language-specific tabSize, then the editor default.
     // editor.tabSize can resolve to 'auto', so fall back to 4 for any non-integer value.
+    // The `> 0` guard is also required: tabSize of 0 would cause division-by-zero in convertTabs.
     const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
     const rawTabSize = editorConfig.get('tabSize', 4);
     const tabSize =
