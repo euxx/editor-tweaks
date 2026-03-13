@@ -27,7 +27,9 @@ function activate(context) {
   const runPruneGoToFileHistory = activatePruneGoToFileHistory(context, out);
 
   const cmd = vscode.commands.registerCommand('editorTweaks.pruneOpenHistory', () =>
-    Promise.all([runPruneRecentlyOpened(), runPruneGoToFileHistory()]),
+    Promise.all([runPruneRecentlyOpened(), runPruneGoToFileHistory()]).catch((err) =>
+      out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`),
+    ),
   );
   context.subscriptions.push(cmd);
 }

@@ -149,14 +149,22 @@ function activate(_context, out) {
 
     const toRemove = computeRemovals(workspaces, files, maxItems, pathExists);
 
+    let removed = 0;
+    let failed = 0;
     for (const fsPath of toRemove) {
-      // Fall back to fsPath if the URI isn’t found (shouldn’t happen in practice)
+      // Fall back to fsPath if the URI isn't found (shouldn't happen in practice)
       const uriString = pathToUri.get(fsPath) ?? fsPath;
       try {
         await vscode.commands.executeCommand('vscode.removeFromRecentlyOpened', uriString);
+        removed++;
       } catch {
         // Ignore per-entry errors so a single failure doesn't abort the remaining removals
+        failed++;
       }
+    }
+    if (toRemove.length > 0) {
+      const failNote = failed > 0 ? ` (${failed} failed)` : '';
+      out.appendLine(`[pruneRecentlyOpened] removed ${removed}/${toRemove.length} entries${failNote}`);
     }
   }
 

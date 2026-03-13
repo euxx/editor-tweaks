@@ -141,7 +141,7 @@ function activate(context, out) {
   const log = (...args) => out.appendLine(args.join(' '));
 
   async function run() {
-    out.clear();
+    out.appendLine('─'.repeat(50));
 
     const config = vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory');
     if (!config.get('enable')) {
