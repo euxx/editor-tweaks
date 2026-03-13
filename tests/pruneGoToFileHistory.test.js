@@ -63,6 +63,13 @@ describe('spawnSync-based functions', () => {
       expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual([]);
     });
 
+    it('returns an empty array when sqlite3 emits only whitespace (e.g. a bare newline for empty tables)', () => {
+      // sqlite3 outputs '\n' when a query returns no rows on some platforms.
+      // The .trim() before the empty-check is load-bearing; this test verifies it.
+      spawnSyncSpy.mockReturnValue({ status: 0, error: null, stdout: '\n' });
+      expect(readWorkspaceHistoryPaths('/fake/state.vscdb')).toEqual([]);
+    });
+
     it('returns filesystem paths from valid history entries', () => {
       const entries = [
         { editor: { resource: 'file:///Users/e/project/src/main.js' } },

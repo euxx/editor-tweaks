@@ -63,4 +63,13 @@ describe('withAlpha', () => {
     expect(withAlpha('#ff', 0.4)).toBe('#ff');
     expect(withAlpha('#fffff', 0.4)).toBe('#fffff');
   });
+
+  it('passes through hex strings containing non-hex characters unchanged', () => {
+    // Exercises the !/^[0-9a-f]{6}$/i validation guard.
+    // #xyz — 3-digit path: replace expands only valid hex chars; 'xyz' stay as-is,
+    // resulting rgb is still 3 chars and fails the 6-char guard.
+    expect(withAlpha('#xyz', 1)).toBe('#xyz');
+    // #GG0000 — 6-digit path: 'GG' is not in [0-9a-f], guard fires.
+    expect(withAlpha('#GG0000', 1)).toBe('#GG0000');
+  });
 });
