@@ -2,7 +2,7 @@
 
 A collection of small VS Code editor utilities packed into a single extension.
 
-Built for personal use — one extension for the small editor utilities I use daily, rather than a growing list of single-purpose installs. Each feature is a focused improvement over the extension that originally inspired it.
+Each feature is a focused improvement over the extension that originally inspired it.
 
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=euxx.editor-tweaks)
 
@@ -19,7 +19,7 @@ Built for personal use — one extension for the small editor utilities I use da
 >
 > Improve:
 >
-> - Adds dimmed border (70% opacity) on inactive editors in split-screen, pinned to their last cursor position (original only highlights the active editor)
+> - Adds dimmed border (70% opacity) on inactive editors in split-screen
 
 Applies a bottom border decoration to the active cursor line.
 
@@ -45,7 +45,7 @@ Applies a bottom border decoration to the active cursor line.
 > Improve:
 >
 > - Fixes `\\` before closing quote being misidentified as an escape
-> - Unescapes/re-escapes content when switching delimiters (original only swaps the quote chars)
+> - Unescapes and re-escapes content when switching delimiters (original only swaps the quote chars)
 > - Deduplicates multi-cursor edits on the same string (original applies the change twice, corrupting it)
 
 Cycles the quote character surrounding the cursor: `"` → `'` → `` ` `` → `"` …
@@ -102,7 +102,7 @@ Removes stale entries from both:
 - The VS Code **recently opened** list (File → Open Recent)
 - The **Go-to-File (Cmd+P)** editor history
 
-...where "stale" means the path no longer exists on disk.
+"Stale" means the path no longer exists on disk.
 
 - Runs automatically on startup (configurable)
 - Also available as a manual command: `Editor Tweaks: Prune Open History`
