@@ -103,7 +103,8 @@ function activate(context) {
     const raw = config.get('chars', ['"', "'", '`']);
     // Only keep single-character strings to match how findQuotedRange scans character by character.
     // Deduplicate to avoid cycling through the same quote twice.
-    const chars = [...new Set((Array.isArray(raw) ? raw : []).filter((c) => typeof c === 'string' && c.length === 1))];
+    const rawChars = Array.isArray(raw) ? raw : [];
+    const chars = [...new Set(rawChars.filter((c) => typeof c === 'string' && c.length === 1))];
     if (chars.length === 0) return;
 
     return editor.edit((editBuilder) => {
