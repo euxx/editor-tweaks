@@ -175,24 +175,24 @@ describe('spawnSync-based functions', () => {
     it('correctly escapes single quotes (apostrophes) in filenames in the UPDATE SQL', () => {
       // A filename like "McDonald's report.js" serializes to JSON containing a ' character.
       // SQLite requires '' (doubled) inside a string literal — not \' — for the UPDATE to succeed.
-      const stale = { editor: { resource: "file:///Users/e/McDonald's%20report.js" } };
-      const keep = { editor: { resource: 'file:///Users/e/keep.js' } };
+      // The apostrophe-containing entry is the KEPT entry so the escape path in
+      // cleanStalePathsFromDb is actually exercised (the stale entry has no apostrophe).
+      const stale = { editor: { resource: 'file:///Users/e/stale.js' } };
+      const keep = { editor: { resource: "file:///Users/e/McDonald's%20report.js" } };
       spawnSyncSpy
         .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([stale, keep]) })
         .mockReturnValueOnce({ status: 0, error: null, stdout: '' });
 
-      cleanStalePathsFromDb('/fake/state.vscdb', new Set(["/Users/e/McDonald's report.js"]));
+      cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/stale.js']));
 
       const writeInput = spawnSyncSpy.mock.calls[1][2].input;
-      // The retained entry (keep.js) should be present; no unescaped apostrophe should remain
-      // inside the SQL string literal (i.e. the UPDATE value must not contain a bare "'")
-      expect(writeInput).toContain('keep.js');
-      // Verify produced SQL has no unescaped apostrophe breaking the string literal:
-      // After stripping the outer UPDATE...'' wrapper, there should be no lone single quote.
+      // The apostrophe entry must survive (it was kept, not stale)
+      expect(writeInput).toContain('McDonald');
+      // The apostrophe must be doubled ('') in the SQL string literal — never bare
       const valueMatch = writeInput.match(/SET value = '([\s\S]*)' WHERE/);
       expect(valueMatch).not.toBeNull();
-      // Inside the SQL string, any apostrophe must appear as '' (doubled)
-      expect(valueMatch[1]).not.toMatch(/(?<!')'(?!')/);
+      expect(valueMatch[1]).not.toMatch(/(?<!')'(?!')/); // no lone apostrophe
+      expect(valueMatch[1]).toContain("McDonald''s"); // explicitly verify doubling
     });
 
     it('matches percent-encoded paths against decoded stalePaths entries', () => {
