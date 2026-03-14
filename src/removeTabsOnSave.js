@@ -34,7 +34,7 @@ function convertTabs(text, tabSize) {
  *     (e.g. "makefile" matches languageId, "Makefile" matches basename)
  * @param {string} languageId - document.languageId
  * @param {string} fileName   - document.fileName (full path)
- * @param {string[]} patterns
+ * @param {string[] | null | undefined} patterns
  * @returns {boolean}
  */
 function isExcluded(languageId, fileName, patterns) {

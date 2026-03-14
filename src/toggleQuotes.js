@@ -45,7 +45,7 @@ function findQuotedRange(lineText, cursorCol, chars) {
 
 /**
  * Returns the next quote character in the configured cycle.
- * @param {string} currentQuote
+ * @param {string} currentQuote - Must be a member of `chars`; falls back to `chars[0]` otherwise.
  * @param {string[]} chars
  * @returns {string}
  */

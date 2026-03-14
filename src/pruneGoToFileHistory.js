@@ -22,8 +22,11 @@ const path = require('path');
 const childProcess = require('child_process');
 const { fileURLToPath } = require('url');
 
+/** @typedef {{ editor?: { resource?: string } }} HistoryEntry */
+
 // Stale paths accumulated across run() calls; written to state.vscdb in deactivate().
-let _pendingDbCleanup = null; // { stateDbPath: string, stalePaths: Set<string> }
+/** @type {{ stateDbPath: string, stalePaths: Set<string> } | null} */
+let _pendingDbCleanup = null;
 
 /**
  * Returns true when a path exists on disk.
@@ -63,7 +66,7 @@ function fileUriToFsPath(uriString) {
  * or unexpected value type).
  * @param {string} stateDbPath
  * @param {number} [timeout]
- * @returns {object[]|null}
+ * @returns {HistoryEntry[]|null}
  */
 function readHistoryEntriesFromDb(stateDbPath, timeout = 5000) {
   const result = childProcess.spawnSync(

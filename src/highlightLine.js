@@ -10,6 +10,7 @@ let activeDecorationType;
 let inactiveDecorationType;
 
 /** Tracks the last known cursor line for each document (by URI string). */
+/** @type {Map<string, number>} */
 const lastLineByDoc = new Map();
 
 /**
