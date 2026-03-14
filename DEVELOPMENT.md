@@ -27,24 +27,7 @@ Open the project in VS Code and press **F5** to launch the Extension Development
 | `npm run lint:fix`     | Lint and auto-fix                     |
 | `npm run format`       | Format code with Prettier             |
 | `npm run format:check` | Check code formatting                 |
-
-## Project Structure
-
-```
-src/
-├── extension.js               # Entry point: registers all features
-├── toggleQuotes.js            # Toggle Quotes feature
-├── highlightLine.js           # Highlight Current Line feature
-├── removeTabsOnSave.js        # Remove Tabs on Save feature
-├── pruneRecentlyOpened.js     # Prune Open History — recently opened list
-└── pruneGoToFileHistory.js    # Prune Open History — Go-to-File (Cmd+P) history
-tests/
-├── toggleQuotes.test.js
-├── highlightLine.test.js
-├── removeTabsOnSave.test.js
-├── pruneRecentlyOpened.test.js
-└── pruneGoToFileHistory.test.js
-```
+| `npm run package`      | Package extension as `.vsix`          |
 
 ## Testing
 
@@ -58,7 +41,15 @@ Tests use [Vitest](https://vitest.dev/).
 ## Local Packaging
 
 ```bash
-npx @vscode/vsce package --no-dependencies
+npm run package
 ```
 
-This produces a `.vsix` file that can be installed locally via **Extensions: Install from VSIX**.
+This produces a `.vsix` file. To install it locally:
+
+```bash
+code --install-extension my-extension-0.0.1.vsix
+```
+
+Or use **Extensions: Install from VSIX** in the VS Code UI.
+
+<!-- END-SHARED -->
