@@ -27,9 +27,14 @@ function activate(context) {
   const runPruneGoToFileHistory = activatePruneGoToFileHistory(context, out);
 
   const cmd = vscode.commands.registerCommand('editorTweaks.pruneOpenHistory', () =>
-    Promise.all([runPruneRecentlyOpened(), runPruneGoToFileHistory()]).catch((err) =>
-      out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`),
-    ),
+    Promise.allSettled([runPruneRecentlyOpened(), runPruneGoToFileHistory()]).then((results) => {
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          const err = r.reason;
+          out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`);
+        }
+      }
+    }),
   );
   context.subscriptions.push(cmd);
 }

@@ -128,7 +128,8 @@ function activate(_context, out) {
     try {
       recentlyOpened = await vscode.commands.executeCommand('_workbench.getRecentlyOpened');
     } catch {
-      // Private API unavailable — silently do nothing
+      // Private API unavailable (may be removed in a future VS Code version)
+      out.appendLine('[pruneRecentlyOpened] skipped: private API unavailable');
       return;
     }
 
