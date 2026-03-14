@@ -69,8 +69,16 @@
             "type": "string",
             "default": "solid",
             "order": 2,
-            "enum": ["solid", "dashed", "dotted"],
-            "enumDescriptions": ["─────", "─ ─ ─", "·····"],
+            "enum": [
+              "solid",
+              "dashed",
+              "dotted"
+            ],
+            "enumDescriptions": [
+              "─────",
+              "─ ─ ─",
+              "·····"
+            ],
             "description": "Bottom border style of the current line highlight."
           },
           "editorTweaks.highlightLine.borderWidth": {
@@ -94,8 +102,16 @@
           },
           "editorTweaks.toggleQuotes.chars": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1, "maxLength": 1 },
-            "default": ["\"", "'", "`"],
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1
+            },
+            "default": [
+              "\"",
+              "'",
+              "`"
+            ],
             "order": 1,
             "description": "Quote characters to cycle through. Each entry must be a single character."
           }
@@ -112,8 +128,13 @@
           },
           "editorTweaks.removeTabsOnSave.excludePatterns": {
             "type": "array",
-            "items": { "type": "string" },
-            "default": ["makefile", "*.go"],
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "makefile",
+              "*.go"
+            ],
             "order": 1,
             "markdownDescription": "Patterns to skip tab removal for. Each entry can be:\n- A **language ID** (e.g. `makefile`) — matched against the document's language\n- An **exact filename** (e.g. `GNUmakefile`) — matched against the file's basename\n- A **glob** containing `*` (e.g. `*.go`, `prefix_*.txt`, `*_suffix.go`) — matched against the file's basename\n\nDefaults to `makefile` and `*.go` since those file types require tab characters."
           }
@@ -146,24 +167,25 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "echo 'No build step required'",
+    "vscode:prepublish": "npm run ci",
+    "ci": "npm run test && npm run lint && npm run format:check",
+    "test": "vitest run",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\"",
-    "test": "vitest run",
-    "ci": "npm run test && npm run lint && npm run format:check",
+    "package": "npx @vscode/vsce package --no-dependencies",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-prettier": "^10.0.0",
-    "globals": "^15.0.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.3.2",
-    "prettier": "^3.0.0",
-    "vitest": "^3.2.4"
+    "@eslint/js": "latest",
+    "eslint": "latest",
+    "eslint-config-prettier": "latest",
+    "globals": "latest",
+    "husky": "latest",
+    "lint-staged": "latest",
+    "prettier": "latest",
+    "vitest": "latest"
   },
   "lint-staged": {
     "*.{js,mjs}": [
