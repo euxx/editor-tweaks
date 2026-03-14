@@ -58,6 +58,13 @@ describe('isExcluded', () => {
     expect(isExcluded('go', '/path/to/main.go', ['*.go?'])).toBe(false);
   });
 
+  it('treats . as a literal character in glob patterns, not a regex metachar', () => {
+    // Without escaping, *.txt would compile to /^[^\\/]*.*txt$/ making the '.' match any char.
+    // That would wrongly match "filetxt" (no dot). With proper escaping it must NOT match.
+    expect(isExcluded('plaintext', '/path/to/filetxt', ['*.txt'])).toBe(false);
+    expect(isExcluded('plaintext', '/path/to/file.txt', ['*.txt'])).toBe(true);
+  });
+
   it('ignores glob patterns with more than 3 wildcards (ReDoS guard)', () => {
     // Pattern with 4 stars should be skipped entirely
     expect(isExcluded('plaintext', '/path/to/a.txt', ['*a*a*a*a'])).toBe(false);

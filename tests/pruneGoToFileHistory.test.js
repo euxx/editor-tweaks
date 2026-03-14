@@ -171,5 +171,45 @@ describe('spawnSync-based functions', () => {
       const writeInput = spawnSyncSpy.mock.calls[1][2].input;
       expect(writeInput).toMatch(/^UPDATE ItemTable SET value = '.*' WHERE key = 'history\.entries';\n$/s);
     });
+
+    it('correctly escapes single quotes (apostrophes) in filenames in the UPDATE SQL', () => {
+      // A filename like "McDonald's report.js" serializes to JSON containing a ' character.
+      // SQLite requires '' (doubled) inside a string literal — not \' — for the UPDATE to succeed.
+      const stale = { editor: { resource: "file:///Users/e/McDonald's%20report.js" } };
+      const keep = { editor: { resource: 'file:///Users/e/keep.js' } };
+      spawnSyncSpy
+        .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([stale, keep]) })
+        .mockReturnValueOnce({ status: 0, error: null, stdout: '' });
+
+      cleanStalePathsFromDb('/fake/state.vscdb', new Set(["/Users/e/McDonald's report.js"]));
+
+      const writeInput = spawnSyncSpy.mock.calls[1][2].input;
+      // The retained entry (keep.js) should be present; no unescaped apostrophe should remain
+      // inside the SQL string literal (i.e. the UPDATE value must not contain a bare "'")
+      expect(writeInput).toContain('keep.js');
+      // Verify produced SQL has no unescaped apostrophe breaking the string literal:
+      // After stripping the outer UPDATE...'' wrapper, there should be no lone single quote.
+      const valueMatch = writeInput.match(/SET value = '([\s\S]*)' WHERE/);
+      expect(valueMatch).not.toBeNull();
+      // Inside the SQL string, any apostrophe must appear as '' (doubled)
+      expect(valueMatch[1]).not.toMatch(/(?<!')'(?!')/);
+    });
+
+    it('matches percent-encoded paths against decoded stalePaths entries', () => {
+      // DB entry has a space encoded as %20; stalePaths contains the decoded fsPath.
+      // fileUriToFsPath must decode the URI for the stale-set lookup to succeed.
+      const stale = { editor: { resource: 'file:///Users/e/My%20Project/file.js' } };
+      const keep = { editor: { resource: 'file:///Users/e/keep.js' } };
+      spawnSyncSpy
+        .mockReturnValueOnce({ status: 0, error: null, stdout: JSON.stringify([stale, keep]) })
+        .mockReturnValueOnce({ status: 0, error: null, stdout: '' });
+
+      cleanStalePathsFromDb('/fake/state.vscdb', new Set(['/Users/e/My Project/file.js']));
+
+      const writeInput = spawnSyncSpy.mock.calls[1][2].input;
+      // The stale entry must have been filtered out; only keep.js survives
+      expect(writeInput).toContain('keep.js');
+      expect(writeInput).not.toContain('My%20Project');
+    });
   });
 });
