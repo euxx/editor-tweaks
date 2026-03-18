@@ -24,6 +24,23 @@ let timer;
 let generation = 0;
 
 /**
+ * Returns true when git.refresh should be attempted.
+ * - Extension unavailable (getExtension returns undefined): false (skip entirely).
+ * - Extension present but not yet active, or exports not ready: true (let git.refresh potentially
+ *   trigger activation; if the command doesn't exist yet it will throw and be caught silently).
+ * - Extension active with zero repositories: false (no git repo in workspace, skip to avoid noise).
+ * - Extension active with repositories: true (normal case).
+ * @param {typeof import('vscode')} vscode
+ * @returns {boolean}
+ */
+function shouldAttemptGitRefresh(vscode) {
+  const gitExt = vscode.extensions.getExtension('vscode.git');
+  if (!gitExt) return false;
+  if (!gitExt.isActive || !gitExt.exports) return true;
+  return gitExt.exports.getAPI(1).repositories.length > 0;
+}
+
+/**
  * Executes one refresh tick and reschedules itself, unless superseded by a newer startTimer() call.
  * Uses setTimeout (not setInterval) so a slow git.refresh never causes concurrent calls.
  * @param {typeof import('vscode')} vscode
@@ -34,7 +51,9 @@ async function tick(vscode, intervalMs, gen) {
   // Skip when VS Code is focused — it polls git status automatically while focused
   if (!vscode.window.state.focused) {
     try {
-      await vscode.commands.executeCommand('git.refresh');
+      if (shouldAttemptGitRefresh(vscode)) {
+        await vscode.commands.executeCommand('git.refresh');
+      }
     } catch {
       // git extension may be unavailable; silently skip
     }
@@ -85,4 +104,4 @@ function deactivate() {
   generation++; // invalidate any in-flight tick so it does not reschedule after deactivation
 }
 
-module.exports = { activate, deactivate, getRefreshInterval };
+module.exports = { activate, deactivate, getRefreshInterval, shouldAttemptGitRefresh };

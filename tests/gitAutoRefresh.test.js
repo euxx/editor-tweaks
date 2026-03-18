@@ -1,5 +1,5 @@
 // vitest globals (describe, it, expect) are injected via globals:true in vitest.config.mjs
-const { getRefreshInterval } = require('../src/gitAutoRefresh.js');
+const { getRefreshInterval, shouldAttemptGitRefresh } = require('../src/gitAutoRefresh.js');
 
 /** Helper to build a minimal config mock */
 function makeConfig(values) {
@@ -39,5 +39,41 @@ describe('getRefreshInterval', () => {
   it('returns the interval when enabled with minimum valid value', () => {
     const config = makeConfig({ enable: true, intervalSec: 1 });
     expect(getRefreshInterval(config)).toBe(1000);
+  });
+});
+
+/** Helper to build a minimal vscode mock for shouldAttemptGitRefresh */
+function makeVscode({ isActive, exports: exportsValue, repositories } = {}) {
+  return {
+    extensions: {
+      getExtension(id) {
+        if (id !== 'vscode.git') return undefined;
+        if (isActive === undefined) return undefined;
+        const exportsObj = exportsValue === null ? null : { getAPI: () => ({ repositories: repositories ?? [] }) };
+        return { isActive, exports: exportsObj };
+      },
+    },
+  };
+}
+
+describe('shouldAttemptGitRefresh', () => {
+  it('returns false when git extension is not installed', () => {
+    expect(shouldAttemptGitRefresh(makeVscode())).toBe(false);
+  });
+
+  it('returns true when git extension is installed but not yet active', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: false, repositories: [] }))).toBe(true);
+  });
+
+  it('returns true when extension is active but exports are not yet populated', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, exports: null }))).toBe(true);
+  });
+
+  it('returns false when extension is active but no repositories', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, repositories: [] }))).toBe(false);
+  });
+
+  it('returns true when extension is active with at least one repository', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, repositories: [{}] }))).toBe(true);
   });
 });
