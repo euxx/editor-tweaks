@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.0] - 2026-03-18
+
+### Added
+
+- Git Auto Refresh: periodically call `git.refresh` so the SCM Changes view stays current when VS Code is not focused
+
 ## [0.1.0] - 2026-03-13
 
 - Highlight Current Line: bottom border decoration following the cursor across editors
