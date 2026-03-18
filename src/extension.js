@@ -12,6 +12,7 @@ const {
   activate: activatePruneGoToFileHistory,
   deactivate: deactivatePruneGoToFileHistory,
 } = require('./pruneGoToFileHistory');
+const { activate: activateGitAutoRefresh, deactivate: deactivateGitAutoRefresh } = require('./gitAutoRefresh');
 
 /**
  * Called when the extension is activated (onStartupFinished).
@@ -37,6 +38,7 @@ function activate(context) {
     }),
   );
   context.subscriptions.push(cmd);
+  activateGitAutoRefresh(context);
 }
 
 /**
@@ -48,6 +50,7 @@ function deactivate() {
   deactivateRemoveTabsOnSave();
   deactivatePruneRecentlyOpened();
   deactivatePruneGoToFileHistory();
+  deactivateGitAutoRefresh();
 }
 
 module.exports = { activate, deactivate };

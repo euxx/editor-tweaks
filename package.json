@@ -163,6 +163,24 @@
             "markdownDescription": "Maximum number of local (`file://`) entries to keep per category in the **recently-opened list** (workspaces and files are counted separately). Oldest entries are removed first. Set to `-1` for no limit. Does not apply to the Go-to-File history."
           }
         }
+      },
+      {
+        "title": "Git Auto Refresh",
+        "properties": {
+          "editorTweaks.gitAutoRefresh.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Periodically call git.refresh so that the SCM Changes view stays current even when VS Code is not focused."
+          },
+          "editorTweaks.gitAutoRefresh.intervalSec": {
+            "type": "integer",
+            "default": 10,
+            "minimum": 1,
+            "order": 1,
+            "description": "How often (in seconds) to refresh git status. Minimum 1 s. Default is 10 s."
+          }
+        }
       }
     ]
   },

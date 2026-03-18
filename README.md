@@ -2,8 +2,6 @@
 
 A collection of small VS Code editor utilities packed into a single extension.
 
-Each feature is a focused improvement over the extension that originally inspired it.
-
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=euxx.editor-tweaks)
 
 ## Features
@@ -12,6 +10,7 @@ Each feature is a focused improvement over the extension that originally inspire
 - **Toggle Quotes** — cycle quote characters surrounding the cursor (`"` → `'` → `` ` `` → `"`)
 - **Remove Tabs on Save** — replace tab characters with spaces using the editor's `tabSize` on save
 - **Prune Open History** — remove inaccessible paths from the recently opened list and the Go-to-File (Cmd+P) history
+- **Git Auto Refresh** — periodically refresh git status so the SCM Changes badge stays current even when VS Code is not focused
 
 ### Highlight Current Line
 
@@ -118,6 +117,25 @@ Removes stale entries from both:
 | `editorTweaks.pruneOpenHistory.enable`       | `true`  | Enable the feature                                                                                                                    |
 | `editorTweaks.pruneOpenHistory.runAtStartup` | `true`  | Prune automatically on startup                                                                                                        |
 | `editorTweaks.pruneOpenHistory.maxItems`     | `-1`    | Max local entries to keep per category in the recently opened list (`maxItems` does not trim the Go-to-File history); `-1` = no limit |
+
+---
+
+### Git Auto Refresh
+
+VS Code's built-in git integration polls status only when the window is focused. All refresh paths — including file-system-change triggers and `git.autofetch` — go through an internal `whenIdleAndFocused()` gate that blocks until the window gains focus. This means the Source Control badge can show stale counts while you are in another app.
+
+This feature works around that by running `git.refresh` on a background timer:
+
+- Only fires when VS Code is **not focused** (focused windows already refresh on their own)
+- Interval and enable/disable are configurable; the timer restarts automatically when settings change
+- Enabled by default
+
+**Settings:**
+
+| Setting                                   | Default | Description                                             |
+| ----------------------------------------- | ------- | ------------------------------------------------------- |
+| `editorTweaks.gitAutoRefresh.enable`      | `true`  | Enable background git status refresh                    |
+| `editorTweaks.gitAutoRefresh.intervalSec` | `10`    | Refresh interval in seconds (minimum 1 s; default 10 s) |
 
 ## License
 
