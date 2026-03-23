@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.2] - 2026-03-23
+
+### Fixed
+
+- Git Auto Refresh: prevent "Git: There are no available repositories matching the filter" error dialog when opening a blank VS Code window or a folder with no git repository. The refresh is now only attempted when the git extension is active, git is installed (`exports.enabled`), and at least one repository is open.
+
 ## [0.2.1] - 2026-03-18
 
 ### Fixed
