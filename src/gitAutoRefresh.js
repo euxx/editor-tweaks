@@ -25,18 +25,16 @@ let generation = 0;
 
 /**
  * Returns true when git.refresh should be attempted.
- * - Extension unavailable (getExtension returns undefined): false (skip entirely).
- * - Extension present but not yet active, or exports not ready: true (let git.refresh potentially
- *   trigger activation; if the command doesn't exist yet it will throw and be caught silently).
- * - Extension active with zero repositories: false (no git repo in workspace, skip to avoid noise).
- * - Extension active with repositories: true (normal case).
+ * - Extension unavailable, not yet active, or disabled (git not installed): false.
+ * - Extension active with zero repositories: false.
+ * - Extension active with repositories: true (only case that triggers a refresh).
  * @param {typeof import('vscode')} vscode
  * @returns {boolean}
  */
 function shouldAttemptGitRefresh(vscode) {
   const gitExt = vscode.extensions.getExtension('vscode.git');
-  if (!gitExt) return false;
-  if (!gitExt.isActive || !gitExt.exports) return true;
+  // exports.enabled is false when git is not installed; getAPI(1) would throw in that case
+  if (!gitExt?.isActive || !gitExt.exports?.enabled) return false;
   return gitExt.exports.getAPI(1).repositories.length > 0;
 }
 
@@ -55,7 +53,7 @@ async function tick(vscode, intervalMs, gen) {
         await vscode.commands.executeCommand('git.refresh');
       }
     } catch {
-      // git extension may be unavailable; silently skip
+      // git.refresh may fail transiently (git binary crash, file system error, etc.); silently skip
     }
   }
   // Reschedule only if startTimer() has not been called since this tick was created

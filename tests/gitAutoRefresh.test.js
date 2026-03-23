@@ -43,13 +43,14 @@ describe('getRefreshInterval', () => {
 });
 
 /** Helper to build a minimal vscode mock for shouldAttemptGitRefresh */
-function makeVscode({ isActive, exports: exportsValue, repositories } = {}) {
+function makeVscode({ isActive, exports: exportsValue, repositories, enabled = true } = {}) {
   return {
     extensions: {
       getExtension(id) {
         if (id !== 'vscode.git') return undefined;
         if (isActive === undefined) return undefined;
-        const exportsObj = exportsValue === null ? null : { getAPI: () => ({ repositories: repositories ?? [] }) };
+        const exportsObj =
+          exportsValue === null ? null : { enabled, getAPI: () => ({ repositories: repositories ?? [] }) };
         return { isActive, exports: exportsObj };
       },
     },
@@ -61,12 +62,16 @@ describe('shouldAttemptGitRefresh', () => {
     expect(shouldAttemptGitRefresh(makeVscode())).toBe(false);
   });
 
-  it('returns true when git extension is installed but not yet active', () => {
-    expect(shouldAttemptGitRefresh(makeVscode({ isActive: false, repositories: [] }))).toBe(true);
+  it('returns false when git extension is installed but not yet active', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: false, repositories: [] }))).toBe(false);
   });
 
-  it('returns true when extension is active but exports are not yet populated', () => {
-    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, exports: null }))).toBe(true);
+  it('returns false when extension is active but exports are not yet populated', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, exports: null }))).toBe(false);
+  });
+
+  it('returns false when extension is active but git is disabled (not installed)', () => {
+    expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, enabled: false }))).toBe(false);
   });
 
   it('returns false when extension is active but no repositories', () => {
