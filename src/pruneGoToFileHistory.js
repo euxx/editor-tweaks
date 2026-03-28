@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Prunes VS Code's Go-to-File (Cmd+P) editor history by removing stale entries
 // whose paths no longer exist on disk.
@@ -17,10 +17,10 @@
 // (available by default on macOS and most Linux distributions). If unavailable
 // the feature silently skips.
 
-const fs = require('fs');
-const path = require('path');
-const childProcess = require('child_process');
-const { fileURLToPath } = require('url');
+const fs = require("fs");
+const path = require("path");
+const childProcess = require("child_process");
+const { fileURLToPath } = require("url");
 
 /** @typedef {{ editor?: { resource?: string } }} HistoryEntry */
 
@@ -39,7 +39,7 @@ function pathExists(p) {
     fs.statSync(p);
     return true;
   } catch (err) {
-    if (err.code === 'ENOENT') return false;
+    if (err.code === "ENOENT") return false;
     return true;
   }
 }
@@ -70,12 +70,12 @@ function fileUriToFsPath(uriString) {
  */
 function readHistoryEntriesFromDb(stateDbPath, timeout = 5000) {
   const result = childProcess.spawnSync(
-    'sqlite3',
+    "sqlite3",
     [stateDbPath, "SELECT value FROM ItemTable WHERE key='history.entries';"],
-    { timeout, encoding: 'utf8' },
+    { timeout, encoding: "utf8" },
   );
   if (result.status !== 0 || result.error) return null;
-  const json = (result.stdout ?? '').trim();
+  const json = (result.stdout ?? "").trim();
   if (!json) return [];
   try {
     const entries = JSON.parse(json);
@@ -127,10 +127,10 @@ function cleanStalePathsFromDb(stateDbPath, stalePaths) {
   const cleanedJson = JSON.stringify(cleaned);
   // Escape single-quote characters for the SQLite literal.
   const escaped = cleanedJson.replace(/'/g, "''");
-  const writeResult = childProcess.spawnSync('sqlite3', [stateDbPath], {
+  const writeResult = childProcess.spawnSync("sqlite3", [stateDbPath], {
     input: `UPDATE ItemTable SET value = '${escaped}' WHERE key = 'history.entries';\n`,
     timeout: 2000,
-    encoding: 'utf8',
+    encoding: "utf8",
   });
   return writeResult.status === 0 && !writeResult.error;
 }
@@ -140,27 +140,27 @@ function cleanStalePathsFromDb(stateDbPath, stalePaths) {
  * @param {import('vscode').OutputChannel} out  Shared output channel from extension.js
  */
 function activate(context, out) {
-  const vscode = require('vscode');
-  const log = (...args) => out.appendLine(args.join(' '));
+  const vscode = require("vscode");
+  const log = (...args) => out.appendLine(args.join(" "));
 
   async function run() {
-    out.appendLine('─'.repeat(50));
+    out.appendLine("─".repeat(50));
 
-    const config = vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory');
-    if (!config.get('enable')) {
-      log('  enable=false — skipping');
+    const config = vscode.workspace.getConfiguration("editorTweaks.pruneOpenHistory");
+    if (!config.get("enable")) {
+      log("  enable=false — skipping");
       return;
     }
 
     // Only works in a local workspace context
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders?.length) {
-      log('  no workspace folders — skipping');
+      log("  no workspace folders — skipping");
       return;
     }
 
     if (!context.storageUri) {
-      log('  context.storageUri is undefined — skipping');
+      log("  context.storageUri is undefined — skipping");
       return;
     }
 
@@ -168,25 +168,29 @@ function activate(context, out) {
     //   {dataDir}/workspaceStorage/{hash}/{extensionId}/
     // VS Code's own workspace storage (state.vscdb) is one level up.
     const storageHashDir = path.dirname(context.storageUri.fsPath);
-    const stateDbPath = path.join(storageHashDir, 'state.vscdb');
-    log('  stateDbPath:', stateDbPath, '  exists:', fs.existsSync(stateDbPath));
+    const stateDbPath = path.join(storageHashDir, "state.vscdb");
+    log("  stateDbPath:", stateDbPath, "  exists:", fs.existsSync(stateDbPath));
 
     if (!fs.existsSync(stateDbPath)) return;
 
     const historyPaths = readWorkspaceHistoryPaths(stateDbPath);
     if (historyPaths === null) {
       log(
-        '  readWorkspaceHistoryPaths returned null — sqlite3 CLI unavailable or error.',
-        'Install sqlite3 to enable Go-to-File history pruning (recently-opened pruning is unaffected).',
+        "  readWorkspaceHistoryPaths returned null — sqlite3 CLI unavailable or error.",
+        "Install sqlite3 to enable Go-to-File history pruning (recently-opened pruning is unaffected).",
       );
       return;
     }
-    log('  historyPaths count:', historyPaths.length);
+    log("  historyPaths count:", historyPaths.length);
 
     const stalePaths = historyPaths.filter((p) => !pathExists(p));
-    log('  stalePaths count:', stalePaths.length, stalePaths.length > 0 ? stalePaths.join('\n    ') : '');
+    log(
+      "  stalePaths count:",
+      stalePaths.length,
+      stalePaths.length > 0 ? stalePaths.join("\n    ") : "",
+    );
     if (stalePaths.length === 0) {
-      log('  nothing to prune');
+      log("  nothing to prune");
       return;
     }
 
@@ -197,13 +201,13 @@ function activate(context, out) {
     } else {
       _pendingDbCleanup = { stateDbPath, stalePaths: new Set(stalePaths) };
     }
-    log(' ', stalePaths.length, 'stale path(s) queued for SQLite cleanup on shutdown');
+    log(" ", stalePaths.length, "stale path(s) queued for SQLite cleanup on shutdown");
   }
 
-  if (vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory').get('runAtStartup')) {
+  if (vscode.workspace.getConfiguration("editorTweaks.pruneOpenHistory").get("runAtStartup")) {
     // Log unexpected errors to the output channel to aid debugging;
     // expected failures (no sqlite3, no workspace, etc.) are handled inside run().
-    run().catch((err) => log('[unexpected]', err?.stack ?? err?.message ?? err));
+    run().catch((err) => log("[unexpected]", err?.stack ?? err?.message ?? err));
   }
 
   return run;

@@ -1,18 +1,30 @@
-'use strict';
+"use strict";
 
-const vscode = require('vscode');
-const { activate: activateToggleQuotes, deactivate: deactivateToggleQuotes } = require('./toggleQuotes');
-const { activate: activateHighlightLine, deactivate: deactivateHighlightLine } = require('./highlightLine');
-const { activate: activateRemoveTabsOnSave, deactivate: deactivateRemoveTabsOnSave } = require('./removeTabsOnSave');
+const vscode = require("vscode");
+const {
+  activate: activateToggleQuotes,
+  deactivate: deactivateToggleQuotes,
+} = require("./toggleQuotes");
+const {
+  activate: activateHighlightLine,
+  deactivate: deactivateHighlightLine,
+} = require("./highlightLine");
+const {
+  activate: activateRemoveTabsOnSave,
+  deactivate: deactivateRemoveTabsOnSave,
+} = require("./removeTabsOnSave");
 const {
   activate: activatePruneRecentlyOpened,
   deactivate: deactivatePruneRecentlyOpened,
-} = require('./pruneRecentlyOpened');
+} = require("./pruneRecentlyOpened");
 const {
   activate: activatePruneGoToFileHistory,
   deactivate: deactivatePruneGoToFileHistory,
-} = require('./pruneGoToFileHistory');
-const { activate: activateGitAutoRefresh, deactivate: deactivateGitAutoRefresh } = require('./gitAutoRefresh');
+} = require("./pruneGoToFileHistory");
+const {
+  activate: activateGitAutoRefresh,
+  deactivate: deactivateGitAutoRefresh,
+} = require("./gitAutoRefresh");
 
 /**
  * Called when the extension is activated (onStartupFinished).
@@ -22,15 +34,15 @@ function activate(context) {
   activateToggleQuotes(context);
   activateHighlightLine(context);
   activateRemoveTabsOnSave(context);
-  const out = vscode.window.createOutputChannel('Editor Tweaks: Prune History');
+  const out = vscode.window.createOutputChannel("Editor Tweaks: Prune History");
   context.subscriptions.push(out);
   const runPruneRecentlyOpened = activatePruneRecentlyOpened(context, out);
   const runPruneGoToFileHistory = activatePruneGoToFileHistory(context, out);
 
-  const cmd = vscode.commands.registerCommand('editorTweaks.pruneOpenHistory', () =>
+  const cmd = vscode.commands.registerCommand("editorTweaks.pruneOpenHistory", () =>
     Promise.allSettled([runPruneRecentlyOpened(), runPruneGoToFileHistory()]).then((results) => {
       for (const r of results) {
-        if (r.status === 'rejected') {
+        if (r.status === "rejected") {
           const err = r.reason;
           out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`);
         }

@@ -1,36 +1,55 @@
 {
   "name": "editor-tweaks",
   "displayName": "Editor Tweaks",
-  "description": "Toggle quotes, highlight current line, remove tabs on save, prune stale recently-opened entries, and auto-refresh git status — small utilities in one extension.",
   "version": "0.2.2",
-  "author": "euxx",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/euxx/editor-tweaks"
-  },
-  "icon": "images/icon.png",
+  "description": "Toggle quotes, highlight current line, remove tabs on save, prune stale recently-opened entries, and auto-refresh git status — small utilities in one extension.",
+  "categories": [
+    "Formatters",
+    "Other"
+  ],
   "keywords": [
-    "toggle-quotes",
+    "editor",
     "highlight-line",
     "remove-tabs",
-    "editor",
+    "toggle-quotes",
     "utilities",
     "vscode",
     "vscode-extension"
   ],
-  "publisher": "euxx",
-  "engines": {
-    "vscode": "^1.85.0"
+  "license": "MIT",
+  "author": "euxx",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/euxx/editor-tweaks"
   },
-  "categories": [
-    "Other",
-    "Formatters"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "publisher": "euxx",
   "main": "./src/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run ci",
+    "ci": "npm run test && npm run lint && npm run format:check",
+    "test": "vitest run",
+    "lint": "oxlint --deny-warnings src/ tests/",
+    "lint:fix": "oxlint --deny-warnings src/ tests/ --fix",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "latest",
+    "lint-staged": "latest",
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "vitest": "latest"
+  },
+  "lint-staged": {
+    "*.{js,html,css,md,yml,yaml,json}": [
+      "oxfmt --write"
+    ],
+    "*.js": [
+      "oxlint --deny-warnings"
+    ]
+  },
   "contributes": {
     "commands": [
       {
@@ -184,27 +203,11 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "npm run ci",
-    "ci": "npm run test && npm run lint && npm run format:check",
-    "test": "vitest run",
-    "lint": "oxlint --deny-warnings src/ tests/",
-    "lint:fix": "oxlint --deny-warnings src/ tests/ --fix",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "package": "npx @vscode/vsce package --no-dependencies",
-    "prepare": "husky"
-  },
-  "devDependencies": {
-    "husky": "latest",
-    "lint-staged": "latest",
-    "oxfmt": "latest",
-    "oxlint": "latest",
-    "prettier": "latest",
-    "vitest": "latest"
-  },
-  "lint-staged": {
-    "*.{js,html,css,md,yml,yaml,json}": ["oxfmt --write"],
-    "*.js": ["oxlint --deny-warnings"]
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
   }
 }

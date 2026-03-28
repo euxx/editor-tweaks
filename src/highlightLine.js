@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Highlights the current line with a bottom border decoration.
 // Non-active editors retain a dimmer highlight at their last cursor position.
@@ -24,12 +24,12 @@ const lastLineByDoc = new Map();
  * @returns {string}
  */
 function withAlpha(color, alpha) {
-  if (!color.startsWith('#')) return color;
+  if (!color.startsWith("#")) return color;
   const hex = color.slice(1);
   let rgb;
   let a = alpha;
   if (hex.length === 3) {
-    rgb = hex.replace(/[0-9a-f]/gi, '$&$&');
+    rgb = hex.replace(/[0-9a-f]/gi, "$&$&");
   } else if (hex.length === 6) {
     rgb = hex;
   } else if (hex.length === 8) {
@@ -52,13 +52,13 @@ function withAlpha(color, alpha) {
  * @returns {{ isWholeLine: true, borderColor: string, borderStyle: string, borderWidth: string } | null}
  */
 function getDecorationOptions(config) {
-  if (!config.get('enable')) return null;
+  if (!config.get("enable")) return null;
 
-  const borderColor = /** @type {string} */ (config.get('borderColor', '#65EAB9'));
+  const borderColor = /** @type {string} */ (config.get("borderColor", "#65EAB9"));
   if (!borderColor) return null;
 
-  const borderStyle = /** @type {string} */ (config.get('borderStyle', 'solid'));
-  const borderWidth = /** @type {string} */ (config.get('borderWidth', '1px'));
+  const borderStyle = /** @type {string} */ (config.get("borderStyle", "solid"));
+  const borderWidth = /** @type {string} */ (config.get("borderWidth", "1px"));
 
   return {
     isWholeLine: true,
@@ -80,7 +80,7 @@ function createDecorationTypes(vscode) {
   inactiveDecorationType?.dispose();
   inactiveDecorationType = undefined;
 
-  const config = vscode.workspace.getConfiguration('editorTweaks.highlightLine');
+  const config = vscode.workspace.getConfiguration("editorTweaks.highlightLine");
   const options = getDecorationOptions(config);
   if (options) {
     activeDecorationType = vscode.window.createTextEditorDecorationType(options);
@@ -127,7 +127,7 @@ function applyAllDecorations(vscode) {
  */
 function activate(context) {
   // Lazy-load vscode so the pure getDecorationOptions function remains testable without the extension host
-  const vscode = require('vscode');
+  const vscode = require("vscode");
 
   createDecorationTypes(vscode);
   applyAllDecorations(vscode);
@@ -150,7 +150,7 @@ function activate(context) {
 
     // Recreate decoration types when settings change (handles enable toggle and color/style changes)
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('editorTweaks.highlightLine')) return;
+      if (!e.affectsConfiguration("editorTweaks.highlightLine")) return;
       createDecorationTypes(vscode);
       applyAllDecorations(vscode);
     }),

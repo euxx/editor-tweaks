@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Cycles the quote character surrounding the cursor: " -> ' -> ` -> "
 // Handles multiple cursors, escape/unescape of delimiters, and configurable quote chars.
@@ -20,7 +20,7 @@ function findQuotedRange(lineText, cursorCol, chars) {
       const quoteChar = ch;
       let j = i + 1;
       while (j < lineText.length) {
-        if (lineText[j] === '\\') {
+        if (lineText[j] === "\\") {
           j += 2; // skip escaped character
           continue;
         }
@@ -65,9 +65,9 @@ function cycleQuote(currentQuote, chars) {
  */
 function transformContent(content, oldQuote, newQuote) {
   if (oldQuote === newQuote) return content;
-  let result = '';
+  let result = "";
   for (let i = 0; i < content.length; i++) {
-    if (content[i] === '\\' && i + 1 < content.length) {
+    if (content[i] === "\\" && i + 1 < content.length) {
       if (content[i + 1] === oldQuote) {
         // Unescape the old delimiter
         result += oldQuote;
@@ -92,19 +92,19 @@ function transformContent(content, oldQuote, newQuote) {
  */
 function activate(context) {
   // Lazy-load vscode so the pure helper functions remain testable without the extension host
-  const vscode = require('vscode');
-  const disposable = vscode.commands.registerCommand('editorTweaks.toggleQuotes', () => {
+  const vscode = require("vscode");
+  const disposable = vscode.commands.registerCommand("editorTweaks.toggleQuotes", () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
 
-    const config = vscode.workspace.getConfiguration('editorTweaks.toggleQuotes');
-    if (!config.get('enable')) return;
+    const config = vscode.workspace.getConfiguration("editorTweaks.toggleQuotes");
+    if (!config.get("enable")) return;
 
-    const raw = config.get('chars', ['"', "'", '`']);
+    const raw = config.get("chars", ['"', "'", "`"]);
     // Only keep single-character strings to match how findQuotedRange scans character by character.
     // Deduplicate to avoid cycling through the same quote twice.
     const rawChars = Array.isArray(raw) ? raw : [];
-    const chars = [...new Set(rawChars.filter((c) => typeof c === 'string' && c.length === 1))];
+    const chars = [...new Set(rawChars.filter((c) => typeof c === "string" && c.length === 1))];
     if (chars.length === 0) return;
 
     return editor.edit((editBuilder) => {

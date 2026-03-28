@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Periodically calls git.refresh so that the SCM Changes view stays up-to-date
 // even when VS Code is not focused (VS Code only polls git status while focused).
@@ -9,8 +9,8 @@
  * @returns {number} interval in ms, or 0 when the feature is disabled
  */
 function getRefreshInterval(config) {
-  if (!config.get('enable')) return 0;
-  const intervalSec = /** @type {number} */ (config.get('intervalSec', 10));
+  if (!config.get("enable")) return 0;
+  const intervalSec = /** @type {number} */ (config.get("intervalSec", 10));
   return intervalSec > 0 ? intervalSec * 1000 : 0;
 }
 
@@ -32,7 +32,7 @@ let generation = 0;
  * @returns {boolean}
  */
 function shouldAttemptGitRefresh(vscode) {
-  const gitExt = vscode.extensions.getExtension('vscode.git');
+  const gitExt = vscode.extensions.getExtension("vscode.git");
   // exports.enabled is false when git is not installed; getAPI(1) would throw in that case
   if (!gitExt?.isActive || !gitExt.exports?.enabled) return false;
   return gitExt.exports.getAPI(1).repositories.length > 0;
@@ -50,7 +50,7 @@ async function tick(vscode, intervalMs, gen) {
   if (!vscode.window.state.focused) {
     try {
       if (shouldAttemptGitRefresh(vscode)) {
-        await vscode.commands.executeCommand('git.refresh');
+        await vscode.commands.executeCommand("git.refresh");
       }
     } catch {
       // git.refresh may fail transiently (git binary crash, file system error, etc.); silently skip
@@ -72,7 +72,9 @@ function startTimer(vscode) {
   timer = undefined;
   generation++;
 
-  const intervalMs = getRefreshInterval(vscode.workspace.getConfiguration('editorTweaks.gitAutoRefresh'));
+  const intervalMs = getRefreshInterval(
+    vscode.workspace.getConfiguration("editorTweaks.gitAutoRefresh"),
+  );
   if (intervalMs === 0) return;
 
   const gen = generation;
@@ -84,12 +86,12 @@ function startTimer(vscode) {
  */
 function activate(context) {
   // Lazy-load vscode so the pure getRefreshInterval function remains testable without the extension host
-  const vscode = require('vscode');
+  const vscode = require("vscode");
   startTimer(vscode);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('editorTweaks.gitAutoRefresh')) {
+      if (e.affectsConfiguration("editorTweaks.gitAutoRefresh")) {
         startTimer(vscode);
       }
     }),

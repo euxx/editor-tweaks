@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 // Prunes the VS Code "recently opened" list by removing entries whose paths no
 // longer exist on disk, and optionally trimming entries beyond a configured limit.
@@ -8,7 +8,7 @@
 // If the private API is unavailable (e.g. a future VS Code version removed it),
 // the feature silently does nothing.
 
-const fs = require('fs');
+const fs = require("fs");
 
 /**
  * Returns true when a path exists on disk.
@@ -24,7 +24,7 @@ function pathExists(p) {
     fs.statSync(p);
     return true;
   } catch (err) {
-    if (err.code === 'ENOENT') return false;
+    if (err.code === "ENOENT") return false;
     // Unknown error (permission denied, I/O error, etc.) — assume the path exists
     return true;
   }
@@ -38,7 +38,7 @@ function pathExists(p) {
  */
 function workspacePath(entry) {
   const uri = entry.folderUri ?? entry.workspace?.configPath;
-  if (!uri || uri.scheme !== 'file') return null;
+  if (!uri || uri.scheme !== "file") return null;
   return uri.fsPath;
 }
 
@@ -50,7 +50,7 @@ function workspacePath(entry) {
  */
 function filePath(entry) {
   const uri = entry.fileUri;
-  if (!uri || uri.scheme !== 'file') return null;
+  if (!uri || uri.scheme !== "file") return null;
   return uri.fsPath;
 }
 
@@ -116,20 +116,20 @@ function computeRemovals(workspaces, files, maxItems, existsFn) {
  */
 function activate(_context, out) {
   // Lazy-load vscode so the pure helper functions remain testable without the extension host
-  const vscode = require('vscode');
+  const vscode = require("vscode");
 
   async function run() {
-    const config = vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory');
-    if (!config.get('enable')) return;
+    const config = vscode.workspace.getConfiguration("editorTweaks.pruneOpenHistory");
+    if (!config.get("enable")) return;
 
-    const maxItems = config.get('maxItems') ?? -1;
+    const maxItems = config.get("maxItems") ?? -1;
 
     let recentlyOpened;
     try {
-      recentlyOpened = await vscode.commands.executeCommand('_workbench.getRecentlyOpened');
+      recentlyOpened = await vscode.commands.executeCommand("_workbench.getRecentlyOpened");
     } catch {
       // Private API unavailable (may be removed in a future VS Code version)
-      out.appendLine('[pruneRecentlyOpened] skipped: private API unavailable');
+      out.appendLine("[pruneRecentlyOpened] skipped: private API unavailable");
       return;
     }
 
@@ -141,11 +141,11 @@ function activate(_context, out) {
     const pathToUri = new Map();
     for (const entry of workspaces) {
       const uri = entry.folderUri ?? entry.workspace?.configPath;
-      if (uri?.scheme === 'file') pathToUri.set(uri.fsPath, uri.toString());
+      if (uri?.scheme === "file") pathToUri.set(uri.fsPath, uri.toString());
     }
     for (const entry of files) {
       const uri = entry.fileUri;
-      if (uri?.scheme === 'file') pathToUri.set(uri.fsPath, uri.toString());
+      if (uri?.scheme === "file") pathToUri.set(uri.fsPath, uri.toString());
     }
 
     const toRemove = computeRemovals(workspaces, files, maxItems, pathExists);
@@ -156,7 +156,7 @@ function activate(_context, out) {
       // Fall back to fsPath if the URI isn't found (shouldn't happen in practice)
       const uriString = pathToUri.get(fsPath) ?? fsPath;
       try {
-        await vscode.commands.executeCommand('vscode.removeFromRecentlyOpened', uriString);
+        await vscode.commands.executeCommand("vscode.removeFromRecentlyOpened", uriString);
         removed++;
       } catch {
         // Ignore per-entry errors so a single failure doesn't abort the remaining removals
@@ -164,15 +164,19 @@ function activate(_context, out) {
       }
     }
     if (toRemove.length > 0) {
-      const failNote = failed > 0 ? ` (${failed} failed)` : '';
-      out.appendLine(`[pruneRecentlyOpened] removed ${removed}/${toRemove.length} entries${failNote}`);
+      const failNote = failed > 0 ? ` (${failed} failed)` : "";
+      out.appendLine(
+        `[pruneRecentlyOpened] removed ${removed}/${toRemove.length} entries${failNote}`,
+      );
     }
   }
 
   // Run automatically on startup if enabled
-  if (vscode.workspace.getConfiguration('editorTweaks.pruneOpenHistory').get('runAtStartup')) {
+  if (vscode.workspace.getConfiguration("editorTweaks.pruneOpenHistory").get("runAtStartup")) {
     // Log unexpected errors to aid debugging; expected failures are handled inside run().
-    run().catch((err) => out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`));
+    run().catch((err) =>
+      out.appendLine(`[unexpected] ${err?.stack ?? err?.message ?? String(err)}`),
+    );
   }
 
   return run;
