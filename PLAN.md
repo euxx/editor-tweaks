@@ -134,9 +134,7 @@ editor-tweaks/
 ├── images/
 │   └── icon.png
 ├── package.json
-├── eslint.config.mjs
 ├── vitest.config.mjs
-├── .prettierrc
 ├── AGENTS.md
 ├── CHANGELOG.md
 ├── DEVELOPMENT.md
