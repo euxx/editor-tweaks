@@ -53,7 +53,8 @@ async function tick(vscode, intervalMs, gen) {
         await vscode.commands.executeCommand("git.refresh");
       }
     } catch {
-      // git.refresh may fail transiently (git binary crash, file system error, etc.); silently skip
+      // Silently skip — letting errors propagate would surface a notification every
+      // intervalSec seconds when git is misconfigured, which is extremely disruptive.
     }
   }
   // Reschedule only if startTimer() has not been called since this tick was created

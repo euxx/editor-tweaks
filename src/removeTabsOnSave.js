@@ -20,7 +20,7 @@ function convertTabs(text, tabSize) {
       column += spacesToTab;
     } else {
       result += char;
-      column += char.length; // char.length is 2 for surrogate-pair code points (emoji)
+      column += char.length; // surrogate-pair code points have .length 2, matching VS Code's UTF-16 column model
     }
   }
   return result;

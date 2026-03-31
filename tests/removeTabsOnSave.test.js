@@ -107,6 +107,11 @@ describe("convertTabs", () => {
     expect(convertTabs("\t\t\t", 2)).toBe("      ");
   });
 
+  it("handles tabSize of 1 (minimum valid value)", () => {
+    expect(convertTabs("\thello", 1)).toBe(" hello");
+    expect(convertTabs("a\tb", 1)).toBe("a b");
+  });
+
   it("correctly tracks column position across surrogate-pair characters (emoji)", () => {
     // '😀' is a surrogate pair: char.length === 2 in UTF-16 (matches VS Code column model).
     // After the emoji, column is 2, so the tab needs 2 spaces to reach the next tab stop at 4.
