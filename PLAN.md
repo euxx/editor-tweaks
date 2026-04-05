@@ -198,7 +198,7 @@ Commands:
 
 - `editorTweaks.fileHistory.show` — Show version history for the current file via Quick Pick; each entry shows a timestamp label. Choosing a version opens it in a diff editor (historical ↔ current). Scans the file's history directory via `readdir` — bounded by `maxVersionsPerFile`, instant.
 - `editorTweaks.fileHistory.restore` — Restore the current file to the selected historical version. Requires the document to be clean (no unsaved changes); if dirty, shows a warning asking the user to manually save or discard changes first. Before overwriting, automatically creates a snapshot of the current file content ("pre-restore checkpoint") — this checkpoint bypasses the `minIntervalSeconds` time gate but still skips if the content hash matches the latest snapshot (meaning an identical backup already exists). If the file exceeds the size limit, the checkpoint is skipped after user confirmation. Shows a confirmation prompt before proceeding.
-- `editorTweaks.fileHistory.openHistoryFolder` — Open the history storage directory for the current workspace in the OS file manager. Workspace resolution: (1) if active editor belongs to a workspace folder, use it; (2) otherwise, if exactly one workspace folder exists, use it; (3) if multiple workspace folders, show Quick Pick; (4) if no workspace folder at all, open the `historyPath` root directory. If the resolved directory does not exist yet (no snapshots taken), shows an informational message.
+- `editorTweaks.fileHistory.openHistoryFolder` — Open the history storage directory for the current workspace in the OS file manager. Workspace resolution: (1) if active editor belongs to a workspace folder, use it; (2) otherwise, if exactly one workspace folder exists, use it; (3) if multiple workspace folders, show Quick Pick; (4) if no workspace folder but an active file, open that file's history directory; (5) otherwise, open the `historyPath` root directory. If the resolved directory does not exist yet (no snapshots taken), shows an informational message.
 
 **v1.1:** `editorTweaks.fileHistory.browse` — Browse history for all files in the current workspace (including deleted ones). Two-step Quick Pick: pick a file, then pick a version. Deleted files can be restored or inspected read-only. Scans `<historyPath>/<canonicalized-workspace-folder-path>/` for the workspace subtree (using the same path canonicalization as snapshot storage); results cached in memory.
 
@@ -251,15 +251,15 @@ editor-tweaks/
 
 ### VS Code APIs Used
 
-| Feature                              | APIs                                                                                                                                                                                               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Toggle Quotes                        | `registerCommand`, `TextEditor.edit`, `TextDocument.getText`, `Selection`, `Range`                                                                                                                 |
-| Highlight Line                       | `createTextEditorDecorationType`, `TextEditor.setDecorations`, `onDidChangeTextEditorSelection`, `onDidChangeActiveTextEditor`, `onDidChangeConfiguration`, `onDidCloseTextDocument`               |
-| Remove Tabs on Save                  | `onWillSaveTextDocument`, `TextEdit.replace`, `workspace.getConfiguration`                                                                                                                         |
-| Prune Open History (recently opened) | `registerCommand`, `_workbench.getRecentlyOpened` (private), `vscode.removeFromRecentlyOpened`                                                                                                     |
-| Prune Open History (Go-to-File)      | `workspace.getConfiguration`, `spawnSync('sqlite3', ...)` (CLI, for `state.vscdb` read/write)                                                                                                      |
-| Git Auto Refresh                     | `extensions.getExtension('vscode.git')`, `commands.executeCommand('git.refresh')`, `window.state.focused`, `onDidChangeConfiguration`, `setTimeout`                                                |
-| File History                         | `onDidSaveTextDocument`, `registerCommand`, `window.showQuickPick`, `commands.executeCommand('vscode.diff', ...)`, `commands.executeCommand('revealFileInOS', ...)`, `fs.readFile`, `fs.writeFile` |
+| Feature                              | APIs                                                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Toggle Quotes                        | `registerCommand`, `TextEditor.edit`, `TextDocument.getText`, `Selection`, `Range`                                                                                                   |
+| Highlight Line                       | `createTextEditorDecorationType`, `TextEditor.setDecorations`, `onDidChangeTextEditorSelection`, `onDidChangeActiveTextEditor`, `onDidChangeConfiguration`, `onDidCloseTextDocument` |
+| Remove Tabs on Save                  | `onWillSaveTextDocument`, `TextEdit.replace`, `workspace.getConfiguration`                                                                                                           |
+| Prune Open History (recently opened) | `registerCommand`, `_workbench.getRecentlyOpened` (private), `vscode.removeFromRecentlyOpened`                                                                                       |
+| Prune Open History (Go-to-File)      | `workspace.getConfiguration`, `spawnSync('sqlite3', ...)` (CLI, for `state.vscdb` read/write)                                                                                        |
+| Git Auto Refresh                     | `extensions.getExtension('vscode.git')`, `commands.executeCommand('git.refresh')`, `window.state.focused`, `onDidChangeConfiguration`, `setTimeout`                                  |
+| File History                         | `onDidSaveTextDocument`, `registerCommand`, `window.showQuickPick`, `commands.executeCommand('vscode.diff', ...)`, `env.openExternal`, `fs.readFile`, `fs.writeFile`                 |
 
 ### Activation
 

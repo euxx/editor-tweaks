@@ -26,8 +26,9 @@
   "main": "./src/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run ci",
-    "ci": "npm run test && npm run lint && npm run format:check",
+    "ci": "npm run syntax && npm run lint && npm run format:check && npm run test",
     "test": "vitest run",
+    "syntax": "node -e \"for(const f of require('fs').readdirSync('src').filter(n=>n.endsWith('.js')))require('child_process').execSync('node --check src/'+f,{stdio:'inherit'})\"",
     "lint": "oxlint --deny-warnings src/ tests/",
     "lint:fix": "oxlint --deny-warnings src/ tests/ --fix",
     "format": "oxfmt --write .",
@@ -59,6 +60,18 @@
       {
         "command": "editorTweaks.pruneOpenHistory",
         "title": "Editor Tweaks: Prune Open History"
+      },
+      {
+        "command": "editorTweaks.fileHistory.show",
+        "title": "Editor Tweaks: File History — Show"
+      },
+      {
+        "command": "editorTweaks.fileHistory.restore",
+        "title": "Editor Tweaks: File History — Restore"
+      },
+      {
+        "command": "editorTweaks.fileHistory.openHistoryFolder",
+        "title": "Editor Tweaks: File History — Open History Folder"
       }
     ],
     "keybindings": [
@@ -198,6 +211,63 @@
             "minimum": 1,
             "order": 1,
             "description": "How often (in seconds) to refresh git status. Minimum 1 s. Default is 10 s."
+          }
+        }
+      },
+      {
+        "title": "File History",
+        "properties": {
+          "editorTweaks.fileHistory.enable": {
+            "type": "boolean",
+            "default": true,
+            "order": 0,
+            "description": "Enable automatic file snapshots on save."
+          },
+          "editorTweaks.fileHistory.historyPath": {
+            "type": "string",
+            "default": "~/.file-history",
+            "order": 1,
+            "description": "Root storage path for file history snapshots. Supports ~ and $ENV_VAR."
+          },
+          "editorTweaks.fileHistory.minIntervalSeconds": {
+            "type": "integer",
+            "default": 60,
+            "minimum": 1,
+            "order": 2,
+            "description": "Minimum seconds between snapshots of the same file. Set to 1 for near-continuous backup."
+          },
+          "editorTweaks.fileHistory.maxVersionsPerFile": {
+            "type": "integer",
+            "default": 60,
+            "minimum": 1,
+            "order": 3,
+            "description": "Maximum number of snapshots to keep per file. Oldest snapshots are deleted first."
+          },
+          "editorTweaks.fileHistory.maxDays": {
+            "type": "integer",
+            "default": 30,
+            "minimum": 1,
+            "order": 4,
+            "description": "Delete snapshots older than this many days. Cleanup runs once on extension activation."
+          },
+          "editorTweaks.fileHistory.maxFileSizeKB": {
+            "type": "integer",
+            "default": 512,
+            "minimum": 1,
+            "order": 5,
+            "description": "Skip files larger than this size (in KB). Protects against snapshotting binaries and generated files."
+          },
+          "editorTweaks.fileHistory.excludePatterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "**/.git/**",
+              "**/node_modules/**"
+            ],
+            "order": 6,
+            "markdownDescription": "Glob patterns of files to exclude from snapshots. Matched against workspace-relative paths (or absolute paths for files outside a workspace). Paths are normalized to `/` separators before matching."
           }
         }
       }

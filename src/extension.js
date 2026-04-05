@@ -25,6 +25,10 @@ const {
   activate: activateGitAutoRefresh,
   deactivate: deactivateGitAutoRefresh,
 } = require("./gitAutoRefresh");
+const {
+  activate: activateFileHistory,
+  deactivate: deactivateFileHistory,
+} = require("./fileHistory");
 
 /**
  * Called when the extension is activated (onStartupFinished).
@@ -51,6 +55,7 @@ function activate(context) {
   );
   context.subscriptions.push(cmd);
   activateGitAutoRefresh(context);
+  activateFileHistory(context);
 }
 
 /**
@@ -63,6 +68,7 @@ function deactivate() {
   deactivatePruneRecentlyOpened();
   deactivatePruneGoToFileHistory();
   deactivateGitAutoRefresh();
+  deactivateFileHistory();
 }
 
 module.exports = { activate, deactivate };
