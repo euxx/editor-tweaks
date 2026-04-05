@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.0] - 2026-04-05
+
+### Added
+
+- File History: automatically snapshot files on save with content-hash deduplication and configurable time gating
+  - Show command: list snapshots and open diff view against current file
+  - Restore command: pick a snapshot to restore (creates pre-restore checkpoint)
+  - Open History Folder command: reveal snapshot directory in Finder/Explorer
+  - Configurable: history path, min interval, max versions per file, max days, max file size, exclude patterns
+
+### Fixed
+
+- Git Auto Refresh: skip `git.refresh` when no workspace folders are open, preventing "no available repositories" error in blank windows
+
 ## [0.2.2] - 2026-03-23
 
 ### Fixed
