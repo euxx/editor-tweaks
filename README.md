@@ -11,6 +11,7 @@ A collection of small VS Code editor utilities packed into a single extension.
 - **Remove Tabs on Save** — replace tab characters with spaces using the editor's `tabSize` on save
 - **Prune Open History** — remove inaccessible paths from the recently opened list and the Go-to-File (Cmd+P) history
 - **Git Auto Refresh** — periodically refresh git status so the SCM Changes badge stays current even when VS Code is not focused
+- **File History** — automatically snapshot files on save for lightweight local version history
 
 ### Highlight Current Line
 
@@ -136,6 +137,39 @@ This feature works around that by running `git.refresh` on a background timer:
 | ----------------------------------------- | ------- | ------------------------------------------------------- |
 | `editorTweaks.gitAutoRefresh.enable`      | `true`  | Enable background git status refresh                    |
 | `editorTweaks.gitAutoRefresh.intervalSec` | `10`    | Refresh interval in seconds (minimum 1 s; default 10 s) |
+
+---
+
+### File History
+
+Automatically snapshots files on every save, providing lightweight local version history independent of git.
+
+- Each file gets a timestamped copy stored under a configurable root directory (default `~/.file-history`)
+- Content-hash deduplication: consecutive saves with identical content produce only one snapshot
+- Time gating: snapshots of the same file are throttled by a configurable minimum interval (default 60 s)
+- Per-file version cap and global age-based expiry keep storage bounded
+- Restore creates a checkpoint of the current state before overwriting (large files may skip the checkpoint after confirmation)
+- Large files and excluded patterns are skipped automatically
+
+**Commands:**
+
+| Command                                             | Description                                                                |
+| --------------------------------------------------- | -------------------------------------------------------------------------- |
+| `Editor Tweaks: File History — Show`                | List snapshots for the active file and preview a selected one              |
+| `Editor Tweaks: File History — Restore`             | Pick a snapshot and restore it into the active editor                      |
+| `Editor Tweaks: File History — Open History Folder` | Reveal the snapshot directory for the current workspace in Finder/Explorer |
+
+**Settings:**
+
+| Setting                                       | Default                                | Description                                                                                |
+| --------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `editorTweaks.fileHistory.enable`             | `true`                                 | Enable automatic file snapshots on save                                                    |
+| `editorTweaks.fileHistory.historyPath`        | `~/.file-history`                      | Root storage path for snapshots. Supports `~` and `$ENV_VAR`                               |
+| `editorTweaks.fileHistory.minIntervalSeconds` | `60`                                   | Minimum seconds between snapshots of the same file (set to `1` for near-continuous backup) |
+| `editorTweaks.fileHistory.maxVersionsPerFile` | `60`                                   | Maximum snapshots to keep per file; oldest are deleted first                               |
+| `editorTweaks.fileHistory.maxDays`            | `30`                                   | Delete snapshots older than this many days (cleanup runs once on activation)               |
+| `editorTweaks.fileHistory.maxFileSizeKB`      | `512`                                  | Skip files larger than this size (KB)                                                      |
+| `editorTweaks.fileHistory.excludePatterns`    | `["**/.git/**", "**/node_modules/**"]` | Glob patterns of files to exclude from snapshots                                           |
 
 ## License
 
