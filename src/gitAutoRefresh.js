@@ -35,6 +35,9 @@ function shouldAttemptGitRefresh(vscode) {
   const gitExt = vscode.extensions.getExtension("vscode.git");
   // exports.enabled is false when git is not installed; getAPI(1) would throw in that case
   if (!gitExt?.isActive || !gitExt.exports?.enabled) return false;
+  // git.refresh requires at least one workspace folder; running it without one
+  // causes the git extension to show "no available repositories" error notification
+  if (!vscode.workspace.workspaceFolders?.length) return false;
   return gitExt.exports.getAPI(1).repositories.length > 0;
 }
 

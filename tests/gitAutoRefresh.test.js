@@ -43,7 +43,13 @@ describe("getRefreshInterval", () => {
 });
 
 /** Helper to build a minimal vscode mock for shouldAttemptGitRefresh */
-function makeVscode({ isActive, exports: exportsValue, repositories, enabled = true } = {}) {
+function makeVscode({
+  isActive,
+  exports: exportsValue,
+  repositories,
+  enabled = true,
+  workspaceFolders = [{}],
+} = {}) {
   return {
     extensions: {
       getExtension(id) {
@@ -56,6 +62,7 @@ function makeVscode({ isActive, exports: exportsValue, repositories, enabled = t
         return { isActive, exports: exportsObj };
       },
     },
+    workspace: { workspaceFolders },
   };
 }
 
@@ -78,6 +85,14 @@ describe("shouldAttemptGitRefresh", () => {
 
   it("returns false when extension is active but no repositories", () => {
     expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, repositories: [] }))).toBe(false);
+  });
+
+  it("returns false when no workspace folders are open", () => {
+    expect(
+      shouldAttemptGitRefresh(
+        makeVscode({ isActive: true, repositories: [{}], workspaceFolders: [] }),
+      ),
+    ).toBe(false);
   });
 
   it("returns true when extension is active with at least one repository", () => {
