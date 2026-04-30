@@ -1,7 +1,7 @@
 {
   "name": "editor-tweaks",
   "displayName": "Editor Tweaks",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Toggle quotes, highlight current line, remove tabs on save, prune stale recently-opened entries, auto-refresh git status, and file history — small utilities in one extension.",
   "categories": [
     "Formatters",

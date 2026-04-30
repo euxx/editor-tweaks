@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.1] - 2026-04-30
+
+### Fixed
+
+- Highlight Line: highlight no longer stays on a stale line after switching back to an editor whose cursor moved while it was inactive
+- Git Auto Refresh: log the first `git.refresh` failure to the Editor Tweaks output channel so a chronically misconfigured git is diagnosable (subsequent failures stay silent to avoid notification spam)
+- File History: route per-file errors (trim, expiry cleanup) to the shared output channel instead of `console.warn`
+
 ## [0.3.0] - 2026-04-05
 
 ### Added
