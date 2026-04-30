@@ -37,7 +37,7 @@ jobs:
         run: npm run ci
 
       - name: Package extension
-        run: npx @vscode/vsce package --no-dependencies --no-pre-publish -o ${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.vsix
+        run: npx @vscode/vsce package --no-dependencies -o ${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.vsix
 
       - name: Create GitHub Release
         env:
