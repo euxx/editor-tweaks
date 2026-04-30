@@ -520,14 +520,20 @@ function activate(context, out) {
 
           const { lastHash } = await ensureFileState(filePath, historyDir);
 
-          const result = await writeSnapshot(historyDir, currentBuffer, ext, lastHash);
-          fileState.set(filePath, { lastTimestamp: Date.now(), lastHash: result.hash });
-          if (result.written) {
+          const checkpoint = await writeSnapshot(historyDir, currentBuffer, ext, lastHash);
+          fileState.set(filePath, { lastTimestamp: Date.now(), lastHash: checkpoint.hash });
+          if (checkpoint.written) {
             await trimHistory(historyDir, cfg.maxVersionsPerFile, log);
           }
         }
 
-        // Restore the selected version
+        // Restore the selected version. We deliberately write raw bytes via
+        // fs.writeFile rather than going through vscode.workspace.applyEdit:
+        // - Snapshots are byte-exact backups; decoding to text would lose bytes
+        //   for non-UTF-8 files and may be re-normalised (EOL, BOM) on save.
+        // - The command already guarded editor.document.isDirty === false above,
+        //   and VS Code silently reloads a clean document when its file changes
+        //   on disk, so no "file changed externally" dialog appears.
         await fs.promises.writeFile(filePath, snapshotBuffer);
 
         // Reset time gate so the first save after restore is not blocked,
