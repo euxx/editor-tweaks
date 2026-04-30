@@ -37,7 +37,7 @@ jobs:
         run: npm run ci
 
       - name: Package extension
-        run: npx @vscode/vsce package --no-dependencies -o ${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.vsix
+        run: npx @vscode/vsce package --no-dependencies --no-pre-publish -o ${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}.vsix
 
       - name: Create GitHub Release
         env:
@@ -45,7 +45,7 @@ jobs:
         run: |
           TAG="v${{ steps.pkg.outputs.version }}"
           if [[ "${{ inputs.overwrite }}" == "true" ]]; then
-            gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+            gh release delete "$TAG" --yes --cleanup-tag || true
           fi
           gh release create "$TAG" \
             --title "$TAG" \
