@@ -99,3 +99,85 @@ describe("shouldAttemptGitRefresh", () => {
     expect(shouldAttemptGitRefresh(makeVscode({ isActive: true, repositories: [{}] }))).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// activate() — first-failure logging
+//
+// Regression: when git.refresh throws (e.g. git extension misconfigured), the
+// tick swallows the error to avoid every-N-seconds notifications. Without at
+// least one log line the failure mode is indistinguishable from "working but
+// silent". This test verifies the first failure is logged and subsequent ones
+// are not.
+// ---------------------------------------------------------------------------
+
+describe("activate — first-failure logging", () => {
+  it("logs the first git.refresh failure once and silences the rest", async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(() => {
+      throw new Error("git misconfigured");
+    });
+
+    const vscodeMock = {
+      window: { state: { focused: false } },
+      workspace: {
+        getConfiguration: () => ({
+          get: (key, def) => {
+            if (key === "enable") return true;
+            if (key === "intervalSec") return 1;
+            return def;
+          },
+        }),
+        workspaceFolders: [{}],
+        onDidChangeConfiguration: () => ({ dispose: () => {} }),
+      },
+      extensions: {
+        getExtension: () => ({
+          isActive: true,
+          exports: { enabled: true, getAPI: () => ({ repositories: [{}] }) },
+        }),
+      },
+      commands: { executeCommand },
+    };
+
+    const Module = require("module");
+    const originalResolve = Module._resolveFilename;
+    Module._resolveFilename = function (request, ...rest) {
+      if (request === "vscode") return "vscode";
+      return originalResolve.call(this, request, ...rest);
+    };
+    require.cache.vscode = {
+      id: "vscode",
+      filename: "vscode",
+      loaded: true,
+      exports: vscodeMock,
+    };
+
+    const lines = [];
+    const out = { appendLine: (msg) => lines.push(msg) };
+
+    try {
+      delete require.cache[require.resolve("../src/gitAutoRefresh.js")];
+      const { activate, deactivate } = require("../src/gitAutoRefresh.js");
+      activate({ subscriptions: [] }, out);
+
+      // Advance the timer to fire the first tick, then await the failed promise.
+      await vi.advanceTimersByTimeAsync(1000);
+      // Fire two more ticks to confirm only the first one logs.
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(executeCommand).toHaveBeenCalledTimes(3);
+      const failureLines = lines.filter((l) => l.includes("git.refresh failed"));
+      expect(failureLines).toHaveLength(1);
+      expect(failureLines[0]).toContain("git misconfigured");
+
+      deactivate();
+    } finally {
+      Module._resolveFilename = originalResolve;
+      delete require.cache.vscode;
+      delete require.cache[require.resolve("../src/gitAutoRefresh.js")];
+      vi.useRealTimers();
+    }
+  });
+});

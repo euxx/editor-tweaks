@@ -23,6 +23,17 @@ let timer;
  */
 let generation = 0;
 
+/** Optional output channel for diagnostics; set by activate(). */
+/** @type {{ appendLine: (msg: string) => void } | undefined} */
+let outputChannel;
+
+/**
+ * One-shot guard so a chronically failing git.refresh does not flood the output
+ * channel — the failure mode is otherwise indistinguishable from "working but
+ * silent" without a single log line.
+ */
+let firstFailureLogged = false;
+
 /**
  * Returns true when git.refresh should be attempted.
  * - Extension unavailable, not yet active, or disabled (git not installed): false.
@@ -55,9 +66,16 @@ async function tick(vscode, intervalMs, gen) {
       if (shouldAttemptGitRefresh(vscode)) {
         await vscode.commands.executeCommand("git.refresh");
       }
-    } catch {
-      // Silently skip — letting errors propagate would surface a notification every
-      // intervalSec seconds when git is misconfigured, which is extremely disruptive.
+    } catch (err) {
+      // Silently skip subsequent failures — surfacing a notification every
+      // intervalSec seconds when git is misconfigured is extremely disruptive.
+      // But log the first failure so the silent-skip behaviour is diagnosable.
+      if (!firstFailureLogged && outputChannel) {
+        firstFailureLogged = true;
+        outputChannel.appendLine(
+          `[gitAutoRefresh] git.refresh failed (further failures will be silenced): ${err?.message ?? err}`,
+        );
+      }
     }
   }
   // Reschedule only if startTimer() has not been called since this tick was created
@@ -87,10 +105,12 @@ function startTimer(vscode) {
 
 /**
  * @param {import('vscode').ExtensionContext} context
+ * @param {{ appendLine: (msg: string) => void }} [out] - optional shared output channel
  */
-function activate(context) {
+function activate(context, out) {
   // Lazy-load vscode so the pure getRefreshInterval function remains testable without the extension host
   const vscode = require("vscode");
+  outputChannel = out;
   startTimer(vscode);
 
   context.subscriptions.push(
@@ -106,6 +126,8 @@ function deactivate() {
   clearTimeout(timer);
   timer = undefined;
   generation++; // invalidate any in-flight tick so it does not reschedule after deactivation
+  outputChannel = undefined;
+  firstFailureLogged = false;
 }
 
 module.exports = { activate, deactivate, getRefreshInterval, shouldAttemptGitRefresh };

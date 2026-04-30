@@ -54,7 +54,7 @@ function activate(context) {
     }),
   );
   context.subscriptions.push(cmd);
-  activateGitAutoRefresh(context);
+  activateGitAutoRefresh(context, out);
   activateFileHistory(context, out);
 }
 
