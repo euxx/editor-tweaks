@@ -169,8 +169,9 @@ async function writeSnapshot(historyDir, buffer, ext, lastHash) {
  * Trims a history directory to maxVersions by deleting the oldest snapshots.
  * @param {string} historyDir
  * @param {number} maxVersions
+ * @param {(msg: string) => void} [onError] - called with a single-line error message; defaults to console.warn
  */
-async function trimHistory(historyDir, maxVersions) {
+async function trimHistory(historyDir, maxVersions, onError = (msg) => console.warn(msg)) {
   if (maxVersions <= 0) return;
   let entries;
   try {
@@ -189,7 +190,7 @@ async function trimHistory(historyDir, maxVersions) {
     toDelete.map((entry) =>
       fs.promises
         .unlink(path.join(historyDir, entry))
-        .catch((err) => console.warn(`[File History] trim delete failed: ${err.message}`)),
+        .catch((err) => onError(`[fileHistory] trim delete failed: ${err.message}`)),
     ),
   );
 }
@@ -199,8 +200,9 @@ async function trimHistory(historyDir, maxVersions) {
  * Scans per-file directories under historyRoot.
  * @param {string} historyRoot
  * @param {number} maxDays
+ * @param {(msg: string) => void} [onError] - called with a single-line error message; defaults to console.warn
  */
-async function runExpiryCleanup(historyRoot, maxDays) {
+async function runExpiryCleanup(historyRoot, maxDays, onError = (msg) => console.warn(msg)) {
   if (maxDays <= 0) return;
   const cutoff = Date.now() - maxDays * 24 * 60 * 60 * 1000;
 
@@ -219,7 +221,7 @@ async function runExpiryCleanup(historyRoot, maxDays) {
       if (parsed && parsed.getTime() < cutoff) {
         await fs.promises
           .unlink(path.join(dir, entry.name))
-          .catch((err) => console.warn(`[File History] expiry delete failed: ${err.message}`));
+          .catch((err) => onError(`[fileHistory] expiry delete failed: ${err.message}`));
       }
     }
 
@@ -314,19 +316,24 @@ function getConfig(vscode) {
   };
 }
 
-/** @type {import('vscode').Disposable[]} */
-let disposables = [];
-
 /**
  * @param {import('vscode').ExtensionContext} context
+ * @param {import('vscode').OutputChannel} [out] - shared output channel; falls back to console.warn
  */
-function activate(context) {
+function activate(context, out) {
   const vscode = require("vscode");
+  const log = out ? (msg) => out.appendLine(msg) : (msg) => console.warn(msg);
+
+  // Tracks files that have already been logged as "skipped due to size" so we
+  // emit at most one log line per file per session, avoiding output-channel spam.
+  /** @type {Set<string>} */
+  const loggedLargeFiles = new Set();
 
   // Clear hash cache when historyPath changes so new directory gets a fresh baseline
   const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration("editorTweaks.fileHistory.historyPath")) {
       fileState.clear();
+      loggedLargeFiles.clear();
     }
   });
 
@@ -407,7 +414,16 @@ function activate(context) {
     // Size check
     try {
       const stat = await fs.promises.stat(filePath);
-      if (stat.size > cfg.maxFileSizeKB * 1024) return;
+      if (stat.size > cfg.maxFileSizeKB * 1024) {
+        if (!loggedLargeFiles.has(filePath)) {
+          loggedLargeFiles.add(filePath);
+          const sizeKB = Math.round(stat.size / 1024);
+          log(
+            `[fileHistory] skipped large file: ${filePath} (${sizeKB}KB > ${cfg.maxFileSizeKB}KB limit)`,
+          );
+        }
+        return;
+      }
     } catch {
       return;
     }
@@ -432,12 +448,12 @@ function activate(context) {
       // hash-only match should not reset the time gate
       if (result.written) {
         fileState.set(filePath, { lastTimestamp: now, lastHash: result.hash });
-        await trimHistory(historyDir, cfg.maxVersionsPerFile);
+        await trimHistory(historyDir, cfg.maxVersionsPerFile, log);
       } else {
         fileState.set(filePath, { lastTimestamp, lastHash: result.hash });
       }
     } catch (err) {
-      console.warn(`[File History] snapshot failed for ${filePath}:`, err?.message || err);
+      log(`[fileHistory] snapshot failed for ${filePath}: ${err?.message || err}`);
     }
   });
 
@@ -507,7 +523,7 @@ function activate(context) {
           const result = await writeSnapshot(historyDir, currentBuffer, ext, lastHash);
           fileState.set(filePath, { lastTimestamp: Date.now(), lastHash: result.hash });
           if (result.written) {
-            await trimHistory(historyDir, cfg.maxVersionsPerFile);
+            await trimHistory(historyDir, cfg.maxVersionsPerFile, log);
           }
         }
 
@@ -582,7 +598,6 @@ function activate(context) {
     },
   );
 
-  disposables.push(configListener, saveListener, showCmd, restoreCmd, openFolderCmd);
   context.subscriptions.push(configListener, saveListener, showCmd, restoreCmd, openFolderCmd);
 
   // Expiry cleanup: run once, deferred
@@ -590,15 +605,15 @@ function activate(context) {
   if (cfg.enable && cfg.maxDays > 0) {
     const cleanupTimer = setTimeout(() => {
       const root = resolveHistoryPath(cfg.historyPath);
-      runExpiryCleanup(root, cfg.maxDays).catch(() => {});
+      runExpiryCleanup(root, cfg.maxDays, log).catch(() => {});
     }, 5000);
     context.subscriptions.push({ dispose: () => clearTimeout(cleanupTimer) });
   }
 }
 
 function deactivate() {
-  for (const d of disposables) d.dispose();
-  disposables = [];
+  // Disposables are owned by context.subscriptions and disposed automatically by VS Code.
+  // Only module-level state needs to be cleared here.
   fileState.clear();
 }
 
