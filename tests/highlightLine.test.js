@@ -1,4 +1,4 @@
-// vitest globals (describe, it, expect) are injected via globals:true in vitest.config.mjs
+// vitest globals (describe, it, expect, vi) are injected via globals:true in vitest.config.mjs
 const { getDecorationOptions, withAlpha } = require("../src/highlightLine.js");
 
 /** Helper to build a minimal config mock */
@@ -81,5 +81,130 @@ describe("withAlpha", () => {
     expect(withAlpha("#xyz", 1)).toBe("#xyz");
     // #GG0000 — 6-digit path: 'GG' is not in [0-9a-f], guard fires.
     expect(withAlpha("#GG0000", 1)).toBe("#GG0000");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyAllDecorations — cache sync after active editor changes
+//
+// Regression: applyAllDecorations() must update the per-editor "last highlighted
+// line" cache for the active editor, otherwise the cache can drift from the
+// actually-decorated line whenever the cursor moves while the editor is
+// inactive. The next intra-line cursor move would then be incorrectly skipped
+// by the early-return optimisation in onDidChangeTextEditorSelection,
+// leaving the highlight on the wrong line.
+// ---------------------------------------------------------------------------
+
+describe("applyAllDecorations cache sync", () => {
+  /** Builds a fake editor with a mutable selection and a stub setDecorations. */
+  function makeEditor(line) {
+    const editor = {
+      selection: { active: { line } },
+      document: { lineAt: (n) => ({ range: { _line: n } }) },
+      setDecorations: vi.fn(),
+    };
+    return editor;
+  }
+
+  it("updates the cache for the active editor so a subsequent same-line move is not falsely skipped", () => {
+    const editorA = makeEditor(5);
+    const editorB = makeEditor(0);
+
+    // Mutable vscode mock: tests rewrite activeTextEditor as the "active editor" changes.
+    const activeRef = { current: editorA };
+    const handlers = {};
+    const vscodeMock = {
+      window: {
+        get activeTextEditor() {
+          return activeRef.current;
+        },
+        get visibleTextEditors() {
+          return [editorA, editorB];
+        },
+        createTextEditorDecorationType: () => ({ dispose: () => {} }),
+        onDidChangeTextEditorSelection: (fn) => {
+          handlers.selection = fn;
+          return { dispose: () => {} };
+        },
+        onDidChangeActiveTextEditor: (fn) => {
+          handlers.activeChange = fn;
+          return { dispose: () => {} };
+        },
+      },
+      workspace: {
+        getConfiguration: () => ({
+          get: (key, def) => {
+            if (key === "enable") return true;
+            if (key === "borderColor") return "#65EAB9";
+            if (key === "borderStyle") return "solid";
+            if (key === "borderWidth") return "1px";
+            return def;
+          },
+        }),
+        onDidChangeConfiguration: () => ({ dispose: () => {} }),
+      },
+    };
+
+    // Inject the mock into Node's require cache before loading the module under
+    // test. vi.mock/vi.doMock do not intercept CommonJS require() reliably for
+    // modules that are not actually installed (vscode is provided by the
+    // extension host at runtime, not via npm), so we register it directly.
+    const Module = require("module");
+    const originalResolve = Module._resolveFilename;
+    Module._resolveFilename = function (request, ...rest) {
+      if (request === "vscode") return "vscode";
+      return originalResolve.call(this, request, ...rest);
+    };
+    require.cache.vscode = {
+      id: "vscode",
+      filename: "vscode",
+      loaded: true,
+      exports: vscodeMock,
+    };
+
+    try {
+      // Force re-require so the module-level WeakMap and decoration types
+      // are reinitialised against the freshly-injected mock.
+      delete require.cache[require.resolve("../src/highlightLine.js")];
+      const { activate, deactivate } = require("../src/highlightLine.js");
+      activate({ subscriptions: [] });
+
+      try {
+        // After activate(), applyAllDecorations() ran once: editorA was active on
+        // line 5, so the initial decoration call already happened and the cache
+        // entry for editorA is line 5.
+        expect(editorA.setDecorations).toHaveBeenCalled();
+        editorA.setDecorations.mockClear();
+
+        // Simulate: while editorA is inactive, its cursor moves to line 7
+        // (e.g. user used "Reveal Definition" in another view that moved the cursor).
+        activeRef.current = editorB;
+        handlers.activeChange();
+        editorA.selection.active.line = 7;
+
+        // Switch back to editorA. applyAllDecorations() must (a) decorate line 7
+        // and (b) update the cache to 7. With the bug, cache stays at 5.
+        activeRef.current = editorA;
+        handlers.activeChange();
+        editorA.setDecorations.mockClear();
+
+        // Now the user moves the cursor in editorA to line 5. With the cache
+        // correctly synced to 7, this is a cache miss and a redraw must occur.
+        // With the bug (cache still 5), the handler returns early and no
+        // setDecorations call happens, leaving the highlight stuck on line 7.
+        editorA.selection.active.line = 5;
+        handlers.selection({ textEditor: editorA });
+
+        expect(editorA.setDecorations).toHaveBeenCalled();
+        const decoratedRange = editorA.setDecorations.mock.calls.at(-1)[1][0];
+        expect(decoratedRange._line).toBe(5);
+      } finally {
+        deactivate();
+      }
+    } finally {
+      Module._resolveFilename = originalResolve;
+      delete require.cache.vscode;
+      delete require.cache[require.resolve("../src/highlightLine.js")];
+    }
   });
 });

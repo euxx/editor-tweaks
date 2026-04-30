@@ -9,9 +9,13 @@ let activeDecorationType;
 /** @type {import('vscode').TextEditorDecorationType | undefined} */
 let inactiveDecorationType;
 
-/** Tracks the last known cursor line for each document (by URI string). */
-/** @type {Map<string, number>} */
-const lastLineByDoc = new Map();
+// Per-editor last highlighted line, used to skip redundant redraws on intra-line
+// cursor moves. WeakMap so closed editors are GC'd automatically. Module-scoped so
+// applyAllDecorations() can keep it in sync when the active editor changes — without
+// that sync, the cache can drift from the actually-decorated line if the cursor moved
+// while the editor was inactive, causing later redraws to be incorrectly skipped.
+/** @type {WeakMap<import('vscode').TextEditor, number>} */
+let lastLineByEditor = new WeakMap();
 
 /**
  * Converts a CSS hex color (#RGB, #RRGGBB, or #RRGGBBAA) to rgba() with the given alpha.
@@ -94,30 +98,31 @@ function createDecorationTypes(vscode) {
 
 /**
  * Applies active decoration to the active editor and inactive decoration to all other
- * visible editors. Clears any stale decorations from editors that no longer qualify.
+ * visible editors. Each editor's own selection is used, so split views of the same
+ * document highlight independently and survive reload without needing cached state.
  * @param {typeof import('vscode')} vscode
  */
 function applyAllDecorations(vscode) {
   const activeEditor = vscode.window.activeTextEditor;
 
   for (const editor of vscode.window.visibleTextEditors) {
+    const line = editor.selection.active.line;
+    const range = editor.document.lineAt(line).range;
     if (editor === activeEditor) {
       // Clear any leftover inactive decoration from this editor
       if (inactiveDecorationType) editor.setDecorations(inactiveDecorationType, []);
       if (!activeDecorationType) continue;
-      const line = editor.selection.active.line;
-      lastLineByDoc.set(editor.document.uri.toString(), line);
-      editor.setDecorations(activeDecorationType, [editor.document.lineAt(line).range]);
+      editor.setDecorations(activeDecorationType, [range]);
+      // Keep the cache in sync: subsequent intra-line cursor moves rely on this entry
+      // to know whether a redraw can be skipped. Without this update, the entry may be
+      // stale (cursor moved while the editor was inactive) and later redraws will be
+      // incorrectly short-circuited, leaving the highlight on the wrong line.
+      lastLineByEditor.set(editor, line);
     } else {
       // Clear any leftover active decoration from this editor
       if (activeDecorationType) editor.setDecorations(activeDecorationType, []);
       if (!inactiveDecorationType) continue;
-      const savedLine = lastLineByDoc.get(editor.document.uri.toString());
-      if (savedLine !== undefined && savedLine < editor.document.lineCount) {
-        editor.setDecorations(inactiveDecorationType, [editor.document.lineAt(savedLine).range]);
-      } else {
-        editor.setDecorations(inactiveDecorationType, []);
-      }
+      editor.setDecorations(inactiveDecorationType, [range]);
     }
   }
 }
@@ -138,8 +143,8 @@ function activate(context) {
       if (e.textEditor !== vscode.window.activeTextEditor) return;
       if (!activeDecorationType) return;
       const line = e.textEditor.selection.active.line;
-      if (line === lastLineByDoc.get(e.textEditor.document.uri.toString())) return;
-      lastLineByDoc.set(e.textEditor.document.uri.toString(), line);
+      if (line === lastLineByEditor.get(e.textEditor)) return;
+      lastLineByEditor.set(e.textEditor, line);
       e.textEditor.setDecorations(activeDecorationType, [e.textEditor.document.lineAt(line).range]);
     }),
 
@@ -154,11 +159,6 @@ function activate(context) {
       createDecorationTypes(vscode);
       applyAllDecorations(vscode);
     }),
-
-    // Clean up stale entries when a document is closed
-    vscode.workspace.onDidCloseTextDocument((doc) => {
-      lastLineByDoc.delete(doc.uri.toString());
-    }),
   );
 }
 
@@ -167,7 +167,7 @@ function deactivate() {
   activeDecorationType = undefined;
   inactiveDecorationType?.dispose();
   inactiveDecorationType = undefined;
-  lastLineByDoc.clear();
+  lastLineByEditor = new WeakMap();
 }
 
-module.exports = { activate, deactivate, getDecorationOptions, withAlpha };
+module.exports = { activate, deactivate, getDecorationOptions, withAlpha, applyAllDecorations };
