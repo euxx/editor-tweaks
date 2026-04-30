@@ -5,7 +5,11 @@
 
 /**
  * Parses a line from left to right and returns the quoted range that contains
- * cursorCol, or null if the cursor is not inside (or on the boundary of) a quoted string.
+ * cursorCol, or null otherwise. The cursor is considered "inside" when
+ * `openPos <= cursorCol <= closePos` — both quote characters are inclusive,
+ * so a cursor positioned immediately before the opening quote or immediately
+ * after the closing quote (in VS Code's between-characters cursor model)
+ * still triggers a swap of the surrounding pair.
  * @param {string} lineText
  * @param {number} cursorCol
  * @param {string[]} chars - The quote characters to recognise
